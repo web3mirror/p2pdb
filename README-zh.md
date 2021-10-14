@@ -9,8 +9,6 @@
 
 PtwopDB包含以下功能：
 
-
-
 1. count 一个分布式计数器，用于验证项目可行性，使用CRDT协议，实现最终一致性（开发中）
 
 2. cache   一个key=>value 的键值数据库，使用CRDT协议，实现最终一致性（已有明确计划，未开发）
@@ -70,6 +68,7 @@ $ npm install --global standard-readme-spec
 ```
 
 ## 使用说明
+一、 PtwopDB存储的数据都是通过公钥加密，只有掌握私钥的客户端才可以解密查看真实数据
 
 这只是一个文档包，你可以打印出 [spec.md](spec.md) 到输出窗口。
 
@@ -150,7 +149,6 @@ Infrastructure	基础设施层
 
 
 
-PtwopDB存储的数据都是通过公钥加密，只有掌握私钥的客户端才可以解密查看真实数据
 
 
 
