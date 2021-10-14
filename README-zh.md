@@ -4,8 +4,8 @@
 
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-简洁
-    PtwopDB（p2p数据库），是一个去中心化、分布式、点对点数据库、PtwopDB使用IPFS为其数据存储和IPFS Pubsub自动与对等方同步数据库。PtwopDB期望打造一个去中心化的分布式数据库，使PtwopDB 成为去中心化应用程序 (dApps)、区块链应用程序和离线优先 Web 应用程序的绝佳选择。
+简介
+    PtwopDB（p2p数据库），是一个去中心化、分布式、点对点数据库、PtwopDB使用IPFS为其数据存储和IPFS Pubsub自动与对等方同步数据。PtwopDB期望打造一个去中心化的分布式数据库，使PtwopDB 成为去中心化应用程序 (dApps)、区块链应用程序和离线Web应用程序的绝佳选择。
 
 PtwopDB包含以下功能：
 
@@ -33,14 +33,17 @@ PtwopDB包含以下功能：
 - [使用许可](#使用许可)
 
 ## 背景
+ 随着互联网的发展，中心化互联网逐渐往多中心化、分布式化演变，目前尚未有一种基础设施可以实现低延迟、去中心化的数据交换网络，ipfs的出现弥补了这一场景的空白,filecoin很好的解决了边缘文件存储问题，但是尚未有一种轻量级的数据库可以解决边缘数据存储，支撑dapp、区块链发展、及物联网终端网络不佳下的数据存储，这也是`PtwopDB`数据库设计的初衷。
+ 
+    
+—— [跟ipfs的关系](https://www.ipfs.io/)    
 
-`标准 Readme` 最开始因为 [@maxogden](https://github.com/maxogden) 在项目 [feross/standard](https://github.com/feross/standard) 的[这个 Issue](https://github.com/feross/standard/issues/141) 中提出，是否标准化 README 会有助于帮助大家。很多人在仓库 [zcei's standard-readme](https://github.com/zcei/standard-readme/issues/1) 就这个想法进行了讨论。在我维护仓库 [IPFS](https://github.com/ipfs) 的时候，我需要在这个组织中推广标准化的 Readme，因此这个项目也就从这开始了。
+> ipfs协议 用于构建分布式低延迟的消息传输网络，而PtwopDB 项目是基于libp2p实现.。
 
-> 如果你的文档是完整的，那么使用你代码的人就不用再去看代码了。这非常的重要。它使得你可以分离接口文档与具体实现。它意味着你可修改实现的代码而保持接口与文档不变。
+—— [跟filecoin的区别](https://filecoin.io/)
+> PtwopDB类似filecoin实现文件交换网络一样，目的是为了实现全球去中心化的数据交换网络。不同的是， PtwopDB只接受一段数据流的存储而不是文件，相对filecoin来说，PtwopDB更轻量级，数据交换速度更快（数据体积更小），PtwopDB可以理解为是一款边缘存储的轻量级关系型数据库，当然PtwopDB也支持非关系性数据库中key=>value 键值对，以及类似mongdb的文档型数据存储格式。
 
-> 请记住：是文档而非代码，定义了一个模块的功能。
 
-—— [Ken Williams, Perl Hackers](http://mathforum.org/ken/perl_modules.html#document)
 
 写 README 从某种程度上来说相当不易，一直维护下去更是难能可贵。如果可以减少这个过程，则可以让写代码与修改代码更容易，使得是否在说明中指明一处需改有无必要更加清楚，你可以花费更少的时间来考虑是否你最初的文档是否需要更新，你可以分配更多的时间来写代码而非维护文档。
 
@@ -120,10 +123,10 @@ Infrastructure	基础设施层
 --------log
 ```
 
-## 相关仓库
+## 本数据库使用到的部分仓库
 
-- [Art of Readme](https://github.com/noffle/art-of-readme) — 💌 写高质量 README 的艺术。
-- [open-source-template](https://github.com/davidbgk/open-source-template/) — 一个鼓励参与开源的 README 模板。
+- [libp2p](https://github.com/libp2p/go-libp2p) 
+- [ipfs](https://github.com/ipfs/go-ipfs)
 
 ## 维护者
 
