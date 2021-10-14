@@ -23,9 +23,10 @@ PtwopDB包含以下功能：
 
 - [背景](#背景)
 - [目标](#目标)
-- [安装](#安装)
-- [使用说明](#使用说明)
-	- [生成器](#生成器)
+- [架构](#架构)
+	- [目录分层](#目录分层)
+- [使用说明]](#使用说明)
+	- [安装](#安装)
 - [徽章](#徽章)
 - [示例](#示例)
 - [相关仓库](#相关仓库)
@@ -55,12 +56,37 @@ PtwopDB包含以下功能：
 4. 一个**边缘数据存储解决方案**
 
 
-## 安装
+## 架构
 
-这个项目使用 [node](http://nodejs.org) 和 [npm](https://npmjs.com)。请确保你本地安装了它们。
+#### 目录分层设计
+```
+interface 接口层
+----api
+--------count
+--------cache
+--------doc
+--------sql
+--------raft
+-----http 对外暴露的http api 接口
+-----rpc 对外暴露的rpc api接口
+-----cli 命令行执行工具
+domain 领域层， 核心逻辑
+Infrastructure	基础设施层
+----ipfs
+--------ipfs-log
+----Raft
+----sqlite
+----Util  公共工具，如日志
+--------log
+```
+
+
+## 启动
+
+这个项目使用 [golang](hhttps://golang.org) 请确保你本地安装了它。
 
 ```sh
-$ npm install --global standard-readme-spec
+$ ./ptwopdb.go start
 ```
 
 ## 使用说明
@@ -93,28 +119,7 @@ $ standard-readme-spec
 
 想了解我们建议的规范是如何被应用的，请参考 [example-readmes](example-readmes/)。
 
-## 源码分层目录设计
 
-```
-interface 接口层
-----api
---------count
---------cache
---------doc
---------sql
---------raft
------http 对外暴露的http api 接口
------rpc 对外暴露的rpc api接口
------cli 命令行执行工具
-domain 领域层， 核心逻辑
-Infrastructure	基础设施层
-----ipfs
---------ipfs-log
-----Raft
-----sqlite
-----Util  公共工具，如日志
---------log
-```
 
 ## 本数据库使用到的部分仓库
 
