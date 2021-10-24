@@ -11,7 +11,7 @@ PtwopDB包含以下功能：
 
 1. `count` 一个分布式计数器，用于验证项目可行性，使用CRDT协议，实现最终一致性（开发中）
 
-2. `cache`   一个key=>value 的键值数据库，使用CRDT协议，实现最终一致性（已有明确计划，未开发）
+2. `kv`   一个key=>value 的键值数据库，使用CRDT协议，实现最终一致性（已有明确计划，未开发）
 
 3. `doc`  一个专为配置文档、注册中心设计的文档数据库，使用CRDT协议，实现最终一致性（已有明确计划，未开发）
 
@@ -40,7 +40,7 @@ PtwopDB包含以下功能：
     
 —— [跟ipfs的关系](https://www.ipfs.io/)    
 
-> ipfs协议 用于构建分布式低延迟的消息传输网络，而PtwopDB 项目是基于libp2p实现.。
+> ipfs协议 用于构建分布式低延迟的消息传输网络，而PtwopDB 项目是基于ipfs协议实现.。
 
 —— [跟filecoin的区别](https://filecoin.io/)
 > PtwopDB类似filecoin实现文件交换网络一样，目的是为了实现全球去中心化的数据交换网络。不同的是， PtwopDB只接受一段数据流的存储而不是文件，相对filecoin来说，PtwopDB更轻量级，数据交换速度更快（数据体积更小），PtwopDB可以理解为是一款边缘存储的轻量级关系型数据库，当然PtwopDB也支持非关系性数据库中key=>value 键值对，以及类似mongdb的文档型数据存储格式。
@@ -63,7 +63,7 @@ PtwopDB包含以下功能：
 interface 接口层
 ----api
 --------count
---------cache
+--------kv
 --------doc
 --------sql
 --------raft
@@ -92,28 +92,7 @@ $ ./ptwopdb.go start
 ## 使用说明
 一、 PtwopDB存储的数据都是通过公钥加密，只有掌握私钥的客户端才可以解密查看真实数据
 
-这只是一个文档包，你可以打印出 [spec.md](spec.md) 到输出窗口。
 
-```sh
-$ standard-readme-spec
-# Prints out the standard-readme spec
-```
-
-### 生成器
-
-想要使用生成器的话，请看 [generator-standard-readme](https://github.com/RichardLitt/generator-standard-readme)。
-有一个全局的可执行文件来运行包里的生成器，生成器的别名叫 `standard-readme`。
-
-## 徽章
-如果你的项目遵循 Standard-Readme 而且项目位于 Github 上，非常希望你能把这个徽章加入你的项目。它可以更多的人访问到这个项目，而且采纳 Stand-README。 加入徽章**并非强制的**。 
-
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-
-为了加入徽章到 Markdown 文本里面，可以使用以下代码：
-
-```
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-```
 
 ## 示例
 
