@@ -96,7 +96,7 @@ set的add操作本质上是求并，天然满足交换律、结合律和幂等�
 query时如果元素在set A且不在set R中，则表示该元素存在。
 
 
-```json
+```
 query lookup(e): bool b 
     let b = (e in A && e not in R)  
 ```
@@ -106,7 +106,7 @@ query lookup(e): bool b
 ##### LWW-element-Set
 为了解决删除元素不能再次添加的问题，可以考虑给2P-Set中A和R的每个元素加一个更新时间戳，其它操作保持不变，只要在查询的时候做如下处理：
 
-```json
+```
 query lookup(e): bool b
     let b = (t1 < t2): (e, t1) in A && (e, t2) not in R   
 ```
@@ -130,10 +130,10 @@ ORSet相对来说是一种比较实用的结构，但实现上仍然有几个问
 
 
 ##### 文档参考附录
-CRDT: https://hal.inria.fr/inria-00609399/document
-CRDT tech report: https://hal.inria.fr/file/index/docid/555588/filename/techreport.pdf
-Eric Brewer: https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed
-redislabs, Developing Applications with Geo-replicated CRDBs on Redis Enterprise Software(RS): https://redislabs.com/redis-enterprise-documentation/developing/crdbs/
-riak: https://docs.basho.com/riak/kv/2.0.0/developing/data-types/
-cosmosDB: https://docs.microsoft.com/en-us/azure/cosmos-db/multi-region-writers
-suojiu:https://developer.aliyun.com/article/635629?spm=a2c6h.13262185.0.0.6b17582aOjQgHe
+* CRDT: https://hal.inria.fr/inria-00609399/document
+* CRDT tech report: https://hal.inria.fr/file/index/docid/555588/filename/techreport.pdf
+* Eric Brewer: https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed
+* Redislabs, Developing Applications with Geo-replicated CRDBs on * Redis Enterprise Software(RS): https://redislabs.com/redis-enterprise-documentation/developing/crdbs/
+* Riak: https://docs.basho.com/riak/kv/2.0.0/developing/data-types/
+* CosmosDB: https://docs.microsoft.com/en-us/azure/cosmos-db/multi-region-writers
+* Suojiu:https://developer.aliyun.com/article/635629?spm=a2c6h.13262185.0.0.6b17582aOjQgHe
