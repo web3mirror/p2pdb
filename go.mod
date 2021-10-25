@@ -1,4 +1,4 @@
-module github.com/ipfs/go-ds-crdt/examples/globaldb
+module github.com/Rock-liyi/p2pdb
 
 go 1.12
 

@@ -118,8 +118,8 @@ $ ./ptwopdb.go start
 
 ### 贡献者
 
-感谢以下参与项目的人：
-<a href="graphs/contributors"><img src="https://opencollective.com/standard-readme/contributors.svg?width=890&button=false" /></a>
+<!-- 感谢以下参与项目的人：
+<a href="graphs/contributors"><img src="https://opencollective.com/standard-readme/contributors.svg?width=890&button=false" /></a> -->
 
 
 ## 使用许可
