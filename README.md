@@ -105,7 +105,7 @@ go mod tidy
 
 编译kv数据库
 ```sh
-go build kv.go
+go build ./interface/cli/kv/kv.go
 ```
 
 使用
