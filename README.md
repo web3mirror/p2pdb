@@ -118,7 +118,7 @@ go build ./interface/cli/kv/kv.go
 一、 P2PDB存储的数据都是通过公钥加密，只有掌握私钥的客户端才可以解密查看真实数据
 
 ## 理解CRDT 最终一致性协议
-- [ipfs](./doc/crdt.md)
+- [ipfs](./doc/zh-CH/crdt.md)
 
 ## 示例
 
