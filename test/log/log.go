@@ -36,7 +36,7 @@ func newRepo() (ipfs_repo.Repo, error) {
 
 	// Listen on local interface only
 	cfg.Addresses.Swarm = []string{
-		"/ip4/10.209.144.5/tcp/0",
+		"/ip4/127.0.0.1/tcp/0",
 	}
 
 	// Do not bootstrap on ipfs node
@@ -57,7 +57,7 @@ func newRepo2() (ipfs_repo.Repo, error) {
 
 	// Listen on local interface only
 	cfg.Addresses.Swarm = []string{
-		"/ip4/10.209.144.6/tcp/0",
+		"/ip4/127.0.0.1/tcp/0",
 	}
 
 	// Do not bootstrap on ipfs node
