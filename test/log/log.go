@@ -36,7 +36,28 @@ func newRepo() (ipfs_repo.Repo, error) {
 
 	// Listen on local interface only
 	cfg.Addresses.Swarm = []string{
-		"/ip4/127.0.0.1/tcp/0",
+		"/ip4/10.209.144.5/tcp/0",
+	}
+
+	// Do not bootstrap on ipfs node
+	cfg.Bootstrap = []string{}
+
+	return &ipfs_repo.Mock{
+		D: dssync.MutexWrap(datastore.NewMapDatastore()),
+		C: *cfg,
+	}, nil
+}
+
+func newRepo2() (ipfs_repo.Repo, error) {
+	// Generating config
+	cfg, err := config.Init(ioutil.Discard, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	// Listen on local interface only
+	cfg.Addresses.Swarm = []string{
+		"/ip4/10.209.144.6/tcp/0",
 	}
 
 	// Do not bootstrap on ipfs node
@@ -67,12 +88,32 @@ func buildNode(ctx context.Context) *ipfs_core.IpfsNode {
 	return nodeA
 }
 
+func buildNode2(ctx context.Context) *ipfs_core.IpfsNode {
+	r, err := newRepo2()
+	if err != nil {
+		panic(err)
+	}
+
+	cfg := &ipfs_core.BuildCfg{
+		Online: true,
+		Repo:   r,
+		Host:   buildHostOverrideExample,
+	}
+
+	nodeA, err := ipfs_core.NewNode(ctx, cfg)
+	if err != nil {
+		panic(err)
+	}
+	return nodeA
+}
+
 func main() {
 	fmt.Println("test log merge")
 	//初始化上下文
 	ctx := context.Background()
 	// Build Ipfs Node A
-	node := buildNode(ctx)
+	nodeA := buildNode(ctx)
+	nodeB := buildNode2(ctx)
 	// Fill up datastore with identities
 	ds := dssync.MutexWrap(datastore.NewMapDatastore())
 	ks, err := keystore.NewKeystore(ds)
@@ -107,25 +148,29 @@ func main() {
 		panic(fmt.Errorf("coreapi error: %s", err))
 	}
 
-	service, err := coreapi.NewCoreAPI(node)
+	serviceA, err := coreapi.NewCoreAPI(nodeA)
 	if err != nil {
 		panic(fmt.Errorf("coreapi error: %s", err))
 	}
 
+	serviceB, err := coreapi.NewCoreAPI(nodeB)
+	if err != nil {
+		panic(fmt.Errorf("coreapi error: %s", err))
+	}
 	// creating log
-	log1, err := log.NewLog(service, identityA, &log.LogOptions{ID: "A"})
+	log1, err := log.NewLog(serviceA, identityA, &log.LogOptions{ID: "A"})
 	if err != nil {
 		panic(err)
 	}
 
 	// creating log
-	log2, err := log.NewLog(service, identityB, &log.LogOptions{ID: "A"})
+	log2, err := log.NewLog(serviceA, identityB, &log.LogOptions{ID: "A"})
 	if err != nil {
 		panic(err)
 	}
 
 	// creating log
-	log3, err := log.NewLog(service, identityC, &log.LogOptions{ID: "A"})
+	log3, err := log.NewLog(serviceB, identityC, &log.LogOptions{ID: "A"})
 	if err != nil {
 		panic(err)
 	}
@@ -160,7 +205,7 @@ func main() {
 		panic(fmt.Errorf("ToMultihash error: %s", err))
 	}
 
-	res, err := log.NewFromMultihash(ctx, service, identityC, h, &log.LogOptions{}, &log.FetchOptions{})
+	res, err := log.NewFromMultihash(ctx, serviceA, identityC, h, &log.LogOptions{}, &log.FetchOptions{})
 	if err != nil {
 		panic(fmt.Errorf("NewFromMultihash error: %s", err))
 	}
