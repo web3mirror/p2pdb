@@ -40,7 +40,10 @@ func newRepo() (ipfs_repo.Repo, error) {
 	}
 
 	// Do not bootstrap on ipfs node
-	cfg.Bootstrap = []string{}
+	cfg.Bootstrap = []string{
+		"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
+		"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
+	}
 
 	return &ipfs_repo.Mock{
 		D: dssync.MutexWrap(datastore.NewMapDatastore()),
@@ -56,12 +59,16 @@ func newRepo2() (ipfs_repo.Repo, error) {
 	}
 
 	// Listen on local interface only
+
 	cfg.Addresses.Swarm = []string{
 		"/ip4/127.0.0.1/tcp/0",
 	}
 
 	// Do not bootstrap on ipfs node
-	cfg.Bootstrap = []string{}
+	cfg.Bootstrap = []string{
+		"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
+		"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
+	}
 
 	return &ipfs_repo.Mock{
 		D: dssync.MutexWrap(datastore.NewMapDatastore()),
@@ -111,7 +118,7 @@ func main() {
 	fmt.Println("test log merge")
 	//初始化上下文
 	ctx := context.Background()
-	// Build Ipfs Node A
+	// Build Ipfs Node A and Node B
 	nodeA := buildNode(ctx)
 	nodeB := buildNode2(ctx)
 	// Fill up datastore with identities
