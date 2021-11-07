@@ -1,13 +1,12 @@
-package main
+package sql
 
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
-    "../sql/test/infrastructure/sql/sqlite"
 
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {

@@ -54,7 +54,7 @@ func (sqlite *Sqlite) Select() {
 
 }
 
-//zh-CH :开启一个事务
+//zh-CH :开启事务
 //en_US
 func (sqlite *Sqlite) Begin(db *sql.DB) (*sql.Tx, error) {
 	tx, err := sqlite.db.Begin()
@@ -72,7 +72,7 @@ func (sqlite *Sqlite) Execute(args ...interface{}) (sql.Result, error) {
 	return sqlite.stmt.ExecContext(context.Background(), args...)
 }
 
-//zh-CH :提交一个事务
+//zh-CH :提交事务
 //en_US
 func (sqlite *Sqlite) Commit(tx *sql.Tx) {
 	err := tx.Commit()
@@ -81,7 +81,7 @@ func (sqlite *Sqlite) Commit(tx *sql.Tx) {
 	}
 }
 
-//zh-CH :执行sql 语句
+//zh-CH :sql 语句
 //en_US:
 // Query executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
