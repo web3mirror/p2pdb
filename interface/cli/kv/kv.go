@@ -178,7 +178,7 @@ func main() {
 
 	//crdt 广播配置
 	opts := crdt.DefaultOptions()
-	opts.Logger = logger
+	opts.Logger = logger //日志
 	opts.RebroadcastInterval = 5 * time.Second
 	//put 时输出值
 	opts.PutHook = func(k ds.Key, v []byte) {
@@ -198,9 +198,10 @@ func main() {
 	defer crdt.Close()
 
 	fmt.Println("Bootstrapping...")
-	//开启本地广播，此处应该调整为配置文件
+	//开启本地广播，此处应该调整为配置文件,可配置多个
 	//bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
 	bstr, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH")
+
 	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
 	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
 	ipfs.Bootstrap(list)

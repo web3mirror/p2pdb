@@ -7,7 +7,7 @@
 中文 | [English](./README-en.md)
 
 简介
-    P2PDB（p2p数据库），是一个去中心化、分布式、点对点数据库、P2PDB使用IPFS为其数据存储和IPFS Pubsub自动与对等方同步数据。P2PDB期望打造一个去中心化的分布式数据库，使P2PDB 成为去中心化应用程序 (dApps)、区块链应用程序和离线Web应用程序的绝佳选择。
+    P2PDB（p2p数据库），是一个去中心化、分布式、点对点数据库、P2PDB使用IPFS为其数据存储和IPFS Pubsub自动与对等方同步数据。P2PDB期望打造一个去中心化的分布式数据库，使P2PDB 成为去中心化应用程序 (dApps)、区块链应用程序和离线Web应用程序的绝佳选择, P2PDB基于白皮书[English](./doc/zh-CH/%E7%99%BD%E7%9A%AE%E4%B9%A6.md)实现
 
 P2PDB包含以下功能：
 

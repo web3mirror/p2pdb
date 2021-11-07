@@ -41,8 +41,9 @@ func newRepo() (ipfs_repo.Repo, error) {
 
 	// Do not bootstrap on ipfs node
 	cfg.Bootstrap = []string{
-		"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
-		"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
+		"/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH",
+		//"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
+		//"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
 	}
 
 	return &ipfs_repo.Mock{
@@ -66,8 +67,9 @@ func newRepo2() (ipfs_repo.Repo, error) {
 
 	// Do not bootstrap on ipfs node
 	cfg.Bootstrap = []string{
-		"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
-		"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
+		"/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH",
+		//"/ip4/10.209.144.6/tcp/4001/p2p/12D3KooWRtdFu6pJ9kTXTAxzCsmGdoPGzRdm5akw2Bp4wzTz14Gr",
+		//"/ip4/10.209.144.5/tcp/4001/p2p/12D3KooWR2Ab6nMFSdAtKEHeoFgJe2TepnCSu6fJforMBLyGubk6",
 	}
 
 	return &ipfs_repo.Mock{
