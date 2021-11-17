@@ -1,13 +1,32 @@
 package sqlite
 
 import (
-	"context"
 	sql "database/sql"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var db *sql.DB // 全局变量
+func openDb(name string) *sql.DB {
+
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	return db
+}
+
+func Exec(sqlStmt string) {
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		log.Printf("%q: %s\n", err, sqlStmt)
+		return
+	}
+}
+
+/*
 type Api interface {
 	Connect()
 	Select()
@@ -36,6 +55,8 @@ type Tx struct {
 	stmt        *sql.Stmt
 }
 
+
+
 //zh-CH :连接数据库,存在直接打开，不存在新建数据库
 //en_US
 func (sqlite *Sqlite) OpenDb(address string) {
@@ -46,8 +67,9 @@ func (sqlite *Sqlite) OpenDb(address string) {
 	sqlite.db = connect
 }
 
-func (sqlite *Sqlite) Close() error {
+func (sqlite *Sqlite) Close() {
 	defer sqlite.db.Close()
+
 }
 
 func (sqlite *Sqlite) Select() {
@@ -91,3 +113,4 @@ func (sqlite *Sqlite) Commit(tx *sql.Tx) {
 func (sqlite *Sqlite) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return sqlite.db.QueryContext(context.Background(), query, args...)
 }
+*/

@@ -6,8 +6,10 @@ package main
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -28,6 +30,8 @@ import (
 	"github.com/mitchellh/go-homedir"
 
 	multiaddr "github.com/multiformats/go-multiaddr"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -36,9 +40,34 @@ var (
 	topicName = "p2pdb-example"
 	netTopic  = "p2pdb-example-net"
 	config    = "p2pdb-example"
+	dbPath    = "./"
+	dbName    = "p2pdb.db"
 )
 
 func main() {
+	p2p()
+}
+
+var db *sql.DB // 全局变量
+func openDb(name string) *sql.DB {
+
+	db, err := sql.Open("sqlite3", name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	return db
+}
+
+func Exec(sqlStmt string) {
+	_, err := db.Exec(sqlStmt, db)
+	if err != nil {
+		log.Printf("%q: %s\n", err, sqlStmt)
+		return
+	}
+}
+
+func p2p() {
 	// Bootstrappers are using 1024 keys. See:
 	// 启动节点哟过 1024 keys
 	// https://github.com/ipfs/infra/issues/378
@@ -205,24 +234,26 @@ func main() {
 	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
 	ipfs.Bootstrap(list)
 	h.ConnManager().TagPeer(inf.ID, "keep", 100)
+	dump(pid, data, h)
+}
 
+func dump(pid peer.ID, data string, h host.Host) {
 	fmt.Printf(`
-Peer ID: %s
-Listen address: %s
-Topic: %s
-Data Folder: %s
-
-welcome to p2pdb
-
-Commands:
-
-> create               ->  create table or database
-> drop  			   ->  drop table 
-> insert <key>         ->  insert data 
-> delete <key> <value> ->  delete data 
-> select               ->  select data
-> update               ->  update data
-`,
+	Peer ID: %s
+	Listen address: %s
+	Topic: %s
+	Data Folder: %s
+	
+	welcome to p2pdb
+	
+	Commands:
+	
+	> create               ->  create table 
+	> insert <key>         ->  insert data 
+	> delete <key> <value> ->  delete data 
+	> select               ->  select data
+	> update               ->  update data
+	`,
 		pid, listen, topicName, data,
 	)
 
@@ -271,17 +302,50 @@ Commands:
 			case "off":
 				logging.SetLogLevel("globaldb", "error")
 			case "peers": //查看对等节点
-				for _, p := range connectedPeers(h) {
-					addrs, err := peer.AddrInfoToP2pAddrs(p)
-					if err != nil {
-						logger.Warn(err)
-						continue
-					}
-					for _, a := range addrs {
-						fmt.Println(a)
-					}
-				}
+				// for _, p := range connectedPeers(h) {
+				// 	addrs, err := peer.AddrInfoToP2pAddrs(p)
+				// 	if err != nil {
+				// 		logger.Warn(err)
+				// 		continue
+				// 	}
+				// 	for _, a := range addrs {
+				// 		fmt.Println(a)
+				// 	}
+				// }
 			}
+		case "select":
+			db, err := sql.Open("sqlite3", dbPath+dbName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+			rows, err := db.Query(text)
+			if err != nil {
+				fmt.Println("sql error-> %s", err)
+			}
+			for rows.Next() {
+				var id int
+				var name string
+				err = rows.Scan(&id, &name)
+				fmt.Println(id, name)
+			}
+		case "insert":
+			if len(fields) < 4 {
+				fmt.Println("sql error->")
+				fmt.Println("insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');")
+				continue
+			}
+			db, err := sql.Open("sqlite3", dbPath+dbName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+			_, err = db.Exec(text)
+			if err != nil {
+				fmt.Println("sql error-> %s"+text, err)
+				continue
+			}
+			fmt.Println("sql execute success-> " + text)
 		case "create":
 			if len(fields) < 2 {
 				fmt.Println("sql error->")
@@ -291,62 +355,43 @@ Commands:
 			name := fields[1]
 			//	v := strings.Join(fields[2:], " ")
 			switch name {
-			case "database":
-				if len(fields) < 3 {
-					fmt.Println("sql error->")
-					fmt.Println("create database p2pdb;")
-					continue
-				}
+			// case "database":
+			// 	if len(fields) < 3 {
+			// 		fmt.Println("sql error->")
+			// 		fmt.Println("create database p2pdb;")
+			// 		continue
+			// 	}
+			// 	os.Remove(dbPath + dbName)
+			// 	db, err := sql.Open("sqlite3", dbPath+dbName)
+			// 	if err != nil {
+			// 		log.Fatal(err)
+			// 	}
+			// 	defer db.Close()
 
-				fmt.Printf("sql execute success-> %s  /r/n", text)
+			// 	fmt.Printf("databse file is exsit in  %s /n", dbPath+dbName)
 			case "table":
 				if len(fields) < 3 {
 					fmt.Println("sql error->")
-					fmt.Println("create table table_name (id integer not null primary key, name text);")
+					fmt.Println("create table p2pdb (id integer not null primary key, name text);")
 					fmt.Printf("> ")
 					continue
 				}
-				fmt.Printf("sql execute success-> %s", text)
+				db, err := sql.Open("sqlite3", dbPath+dbName)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer db.Close()
+				sqlStmt := text
+				_, err = db.Exec(sqlStmt)
+				if err != nil {
+					log.Println("%q: %s\n", err, sqlStmt)
+					continue
+				}
+				// sqlStmt := text
+				// Exec(sqlStmt)
+				fmt.Println("sql execute success-> %s", text)
 			}
-			// case "list":
-			// 	q := query.Query{}
-			// 	results, err := crdt.Query(q)
-			// 	if err != nil {
-			// 		printErr(err)
-			// 	}
-			// 	for r := range results.Next() {
-			// 		if r.Error != nil {
-			// 			printErr(err)
-			// 			continue
-			// 		}
-			// 		fmt.Printf("[%s] -> %s\n", r.Key, string(r.Value))
-			// 	}
-			// case "get":
-			// 	if len(fields) < 2 {
-			// 		fmt.Println("get <key>")
-			// 		fmt.Println("> ")
-			// 		continue
-			// 	}
-			// 	k := ds.NewKey(fields[1])
-			// 	v, err := crdt.Get(k)
-			// 	if err != nil {
-			// 		printErr(err)
-			// 		continue
-			// 	}
-			// 	fmt.Printf("[%s] -> %s\n", k, string(v))
-			// case "put":
-			// 	if len(fields) < 3 {
-			// 		fmt.Println("put <key> <value>")
-			// 		fmt.Println("> ")
-			// 		continue
-			// 	}
-			// 	k := ds.NewKey(fields[1])
-			// 	v := strings.Join(fields[2:], " ")
-			// 	err := crdt.Put(k, []byte(v))
-			// 	if err != nil {
-			// 		printErr(err)
-			// 		continue
-			// 	}
+
 		}
 
 		fmt.Printf("> ")

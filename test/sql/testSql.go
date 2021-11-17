@@ -90,6 +90,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer rows.Close()
 	for rows.Next() {
 		var id int
