@@ -75,6 +75,8 @@ P2PDB包含以下功能：
 
 ## 架构
 
+#### 架构设计图
+![avatar](./doc/zh-CH/architecture.png)
 #### 目录分层设计
 ```
 interface 接口层
