@@ -32,11 +32,12 @@ import (
 )
 
 var (
-	logger    = logging.Logger("p2pdb")
-	listen, _ = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
-	topicName = "p2pdb-example"
-	netTopic  = "p2pdb-example-net"
-	config    = "p2pdb-example"
+	logger      = logging.Logger("p2pdb")
+	listen, _   = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
+	bstrAddress = "/ip4/127.0.0.1/tcp/4001/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH"
+	topicName   = "p2pdb"
+	netTopic    = "p2pdb-topic"
+	config      = "p2pdb-example"
 )
 
 func main() {
@@ -200,7 +201,7 @@ func main() {
 	fmt.Println("Bootstrapping...")
 	//开启本地广播，此处应该调整为配置文件,可配置多个
 	//bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
-	bstr, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH")
+	bstr, _ := multiaddr.NewMultiaddr(bstrAddress)
 
 	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
 	list := append(ipfslite.DefaultBootstrapPeers(), *inf)

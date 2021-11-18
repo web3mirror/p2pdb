@@ -69,7 +69,7 @@ func Exec(sqlStmt string) {
 
 func p2p() {
 	// Bootstrappers are using 1024 keys. See:
-	// 启动节点哟过 1024 keys
+	// 启动节点 1024 keys
 	// https://github.com/ipfs/infra/issues/378
 	crypto.MinRsaKeyBits = 1024
 
