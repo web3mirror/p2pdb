@@ -60,9 +60,8 @@ P2PDB包含以下功能：
  这个数据库的目标是：
 
 1. 一个**Dapp应用数据存储方案**
-2. 一个**分布式数据库解决方案**
-3. 一个**分布式缓存系统解决方案**
-4. 一个**边缘数据存储解决方案**
+2. 一个**去中心化分布式数据库解决方案**
+3. 一个**边缘数据存储解决方案**
 
  使用场景
 * 1、文章阅读数、投票数、点赞数
@@ -117,12 +116,6 @@ go build ./interface/cli/kv/kv.go
 ```sh
 ./kv
 ```
-## 使用说明
-
-
-## 文档
-- [文档](https://github.com/Rock-liyi/p2pdb/tree/main/doc)
-
 ## 示例
 
 ```go
@@ -133,6 +126,11 @@ Commands:
 > put <key> <value>  -> store value on a key
 > exit               -> quit
 ```
+
+
+## 文档
+- [文档](https://github.com/Rock-liyi/p2pdb/tree/main/doc)
+
 
 
 
