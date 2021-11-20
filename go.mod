@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	berty.tech/go-ipfs-log v1.5.0
+	github.com/go-ini/ini v1.64.0 // indirect
 	github.com/hsanjuan/ipfs-lite v1.1.6
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-ds-crdt v0.1.8

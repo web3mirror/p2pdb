@@ -29,16 +29,27 @@ import (
 	"github.com/mitchellh/go-homedir"
 
 	multiaddr "github.com/multiformats/go-multiaddr"
+	"gopkg.in/ini.v1"
 )
 
 var (
 	logger      = logging.Logger("p2pdb")
-	listen, _   = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
+	listen, _   = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/4001")
 	bstrAddress = "/ip4/127.0.0.1/tcp/4001/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH"
 	topicName   = "p2pdb"
 	netTopic    = "p2pdb-topic"
 	config      = "p2pdb-example"
 )
+
+func p2pConfig() {
+	cfg, err := ini.Load("my.ini")
+	if err != nil {
+		fmt.Printf("Fail to read file: %v", err)
+		os.Exit(1)
+	}
+	fmt.Println("bstrAddress:", cfg.Section("").Key("bstrAddress").String())
+
+}
 
 func main() {
 	// Bootstrappers are using 1024 keys. See:
