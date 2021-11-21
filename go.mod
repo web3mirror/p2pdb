@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	berty.tech/go-ipfs-log v1.5.0
+	github.com/astaxie/beego v1.12.3 // indirect
 	github.com/go-ini/ini v1.64.0 // indirect
 	github.com/hsanjuan/ipfs-lite v1.1.6
 	github.com/ipfs/go-datastore v0.4.5
@@ -15,7 +16,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-peerstore v0.2.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.2
-	github.com/mattn/go-sqlite3 v1.14.9
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.3.3
 )

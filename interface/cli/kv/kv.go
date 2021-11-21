@@ -28,30 +28,35 @@ import (
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/mitchellh/go-homedir"
 
+	"github.com/astaxie/beego"
 	multiaddr "github.com/multiformats/go-multiaddr"
-	"gopkg.in/ini.v1"
+	//"gopkg.in/ini.v1"
 )
 
 var (
-	logger      = logging.Logger("p2pdb")
-	listen, _   = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/4001")
-	bstrAddress = "/ip4/127.0.0.1/tcp/4001/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH"
-	topicName   = "p2pdb"
-	netTopic    = "p2pdb-topic"
-	config      = "p2pdb-example"
+	logger    = logging.Logger("p2pdb")
+	listen, _ = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/4001")
+	//bstrAddress = "/ip4/127.0.0.1/tcp/4001/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH"
+	bstrAddress = beego.AppConfig.String("bstrAddress")
+	topicName   = beego.AppConfig.String("topicName")
+	netTopic    = beego.AppConfig.String("netTopic")
+	config      = beego.AppConfig.String("config")
 )
 
-func p2pConfig() {
-	cfg, err := ini.Load("my.ini")
-	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
-	}
-	fmt.Println("bstrAddress:", cfg.Section("").Key("bstrAddress").String())
+// func p2pConfig() {
+// 	cfg, err := ini.Load("my.ini")
+// 	if err != nil {
+// 		fmt.Printf("Fail to read file: %v", err)
+// 		os.Exit(1)
+// 	}
+// 	fmt.Println("bstrAddress:", cfg.Section("").Key("bstrAddress").String())
 
-}
+// }
 
 func main() {
+	// beego.Debug("main start...")
+	// beego.Debug(beego.AppConfig.String("bstrAddress"))
+	// return
 	// Bootstrappers are using 1024 keys. See:
 	// 启动节点哟过 1024 keys
 	// https://github.com/ipfs/infra/issues/378
