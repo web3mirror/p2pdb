@@ -35,7 +35,7 @@ import (
 
 var (
 	logger    = logging.Logger("p2pdb")
-	listen, _ = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/4001")
+	listen, _ = multiaddr.NewMultiaddr(beego.AppConfig.String("listenAddress"))
 	//bstrAddress = "/ip4/127.0.0.1/tcp/4001/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH"
 	bstrAddress = beego.AppConfig.String("bstrAddress")
 	topicName   = beego.AppConfig.String("topicName")
@@ -176,6 +176,7 @@ func main() {
 				//打印发布消息
 
 				//fmt.Println("触发广播====")
+				beego.Debug(ctx)
 				//广播发布消息
 				topic.Publish(ctx, []byte("hi!"))
 				time.Sleep(20 * time.Second)
