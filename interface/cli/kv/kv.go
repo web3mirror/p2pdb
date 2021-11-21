@@ -202,9 +202,9 @@ func main() {
 
 				//fmt.Println("触发广播====")
 				//beego.Debug()
-				msg := "publish a message"
+				//msg := "publish a message"
 				//广播发布消息
-				topic.Publish(ctx, []byte(msg))
+				topic.Publish(ctx, []byte("hi!"))
 				time.Sleep(20 * time.Second)
 			}
 		}
