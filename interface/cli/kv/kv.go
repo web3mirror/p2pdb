@@ -214,7 +214,7 @@ func main() {
 	}
 	defer crdt.Close()
 
-	fmt.Println("Bootstrapping...")
+	fmt.Println("Bootstrapping... bstrAddress is " + bstrAddress)
 	//开启本地广播，此处应该调整为配置文件,可配置多个
 	//bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
 	bstr, _ := multiaddr.NewMultiaddr(bstrAddress)
