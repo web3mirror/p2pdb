@@ -129,18 +129,36 @@ func main() {
 	}
 	defer h.Close()
 	defer dht.Close()
+	/**
+	pubsub 包为消息传播的发布/订阅模式提供了工具，也称为覆盖多播。该实现提供基于主题的发布订阅，以及可插入的路由算法。
 
+	该库的主要接口是 PubSub 对象。您可以使用以下构造函数构造此对象：
+
+	- NewFloodSub 创建一个使用 floodsub 路由算法的实例。
+
+	- NewGossipSub 创建一个使用 gossipsub 路由算法的实例。
+
+	- NewRandomSub 创建一个使用 randomsub 路由算法的实例。
+
+	此外，还有一个通用构造函数，用于创建具有自定义 PubSubRouter 接口的 pubsub 实例。此过程目前保留供包内的内部使用。
+
+	一旦你构建了一个 PubSub 实例，你需要与你的 peer 建立一些连接；该实现依赖于环境对等发现，将引导和主动对等发现留给客户端。
+
+	要将消息发布到某个主题，请使用 Publish；您无需订阅主题即可发布。
+
+	要订阅主题，请使用订阅；这将为您提供一个订阅界面，可以从中抽取新消息
+	*/
 	psub, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
+	//根据topic 进行订阅
 	topic, err := psub.Join(netTopic)
 	if err != nil {
 		logger.Fatal(err)
 	}
-
-	//根据topic 进行订阅
+	//开始订阅
 	netSubs, err := topic.Subscribe()
 	if err != nil {
 		logger.Fatal(err)
@@ -159,6 +177,8 @@ func main() {
 				fmt.Println(err)
 				break
 			}
+			beego.Debug("Subscribe:")
+			beego.Debug(msg.GetData())
 			//ConnManager 返回这个host连接管理器
 			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
 		}
@@ -176,9 +196,10 @@ func main() {
 				//打印发布消息
 
 				//fmt.Println("触发广播====")
-				beego.Debug(ctx)
+				//beego.Debug()
+				msg := "publish a message"
 				//广播发布消息
-				topic.Publish(ctx, []byte("hi!"))
+				topic.Publish(ctx, []byte(msg))
 				time.Sleep(20 * time.Second)
 			}
 		}
