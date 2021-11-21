@@ -178,6 +178,11 @@ func main() {
 				break
 			}
 			beego.Debug("Subscribe:")
+			beego.Debug(msg.GetTopic())
+			beego.Debug(msg.GetKey())
+			beego.Debug(msg.GetFrom())
+			beego.Debug(msg.GetSeqno())
+			beego.Debug(msg.GetSignature())
 			beego.Debug(msg.GetData())
 			//ConnManager 返回这个host连接管理器
 			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
