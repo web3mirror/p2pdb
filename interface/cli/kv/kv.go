@@ -58,7 +58,7 @@ func main() {
 	// beego.Debug(beego.AppConfig.String("bstrAddress"))
 	// return
 	// Bootstrappers are using 1024 keys. See:
-	// 启动节点哟过 1024 keys
+	// 启动节点使用 1024 keys
 	// https://github.com/ipfs/infra/issues/378
 	crypto.MinRsaKeyBits = 1024
 
