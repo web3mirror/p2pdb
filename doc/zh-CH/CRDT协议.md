@@ -137,3 +137,4 @@ ORSet相对来说是一种比较实用的结构，但实现上仍然有几个问
 * Riak: https://docs.basho.com/riak/kv/2.0.0/developing/data-types/
 * CosmosDB: https://docs.microsoft.com/en-us/azure/cosmos-db/multi-region-writers
 * Suojiu:https://developer.aliyun.com/article/635629?spm=a2c6h.13262185.0.0.6b17582aOjQgHe
+*https://ask.qcloudimg.com/draft/7100294/8bn2kjikcp.pdf

@@ -11,9 +11,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -178,12 +180,12 @@ func main() {
 				break
 			}
 			beego.Debug("Subscribe:")
-			beego.Debug(msg.GetTopic())
-			beego.Debug(msg.GetKey())
-			beego.Debug(msg.GetFrom())
+			beego.Debug("GetTopic:" + msg.GetTopic())
+			beego.Debug("GetKey:" + BytesToString(msg.GetKey()))
+			beego.Debug("GetSeqno:")
 			beego.Debug(msg.GetSeqno())
-			beego.Debug(msg.GetSignature())
-			beego.Debug(msg.GetData())
+			beego.Debug("GetSignature:" + BytesToString(msg.GetSignature()))
+			beego.Debug("GetData:" + BytesToString(msg.GetData()))
 			//ConnManager 返回这个host连接管理器
 			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
 		}
@@ -192,23 +194,25 @@ func main() {
 	//发布消息
 
 	//select语句和switch语句一样，它不是循环，它只会选择一个case来处理，如果想一直处理channel，你可以在外面加一个无限的for循环：
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				//打印发布消息
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <-ctx.Done():
+	// 			return
+	// 		default:
+	// 			//打印发布消息
 
-				//fmt.Println("触发广播====")
-				//beego.Debug()
-				//msg := "publish a message"
-				//广播发布消息
-				topic.Publish(ctx, []byte("hi!"))
-				time.Sleep(20 * time.Second)
-			}
-		}
-	}()
+	// 			//fmt.Println("触发广播====")
+	// 			//beego.Debug()
+	// 			//msg := "publish a message"
+	// 			fmt.Printf("ctx: %v\n", ctx)
+	// 			data := "key:value"
+	// 			//广播发布消息
+	// 			topic.Publish(ctx, StringToBytes(data))
+	// 			time.Sleep(20 * time.Second)
+	// 		}
+	// 	}
+	// }()
 
 	ipfs, err := ipfslite.New(ctx, store, h, dht, nil)
 	if err != nil {
@@ -362,6 +366,9 @@ Commands:
 			k := ds.NewKey(fields[1])
 			v := strings.Join(fields[2:], " ")
 			err := crdt.Put(k, []byte(v))
+			data := fields[1] + ":" + fields[2]
+			//广播发布消息
+			topic.Publish(ctx, StringToBytes(data))
 			if err != nil {
 				printErr(err)
 				continue
@@ -386,4 +393,14 @@ func connectedPeers(h host.Host) []*peer.AddrInfo {
 		})
 	}
 	return pinfos
+}
+
+func BytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+func StringToBytes(s string) []byte {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh := reflect.SliceHeader{sh.Data, sh.Len, 0}
+	return *(*[]byte)(unsafe.Pointer(&bh))
 }
