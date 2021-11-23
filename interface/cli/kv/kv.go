@@ -366,13 +366,15 @@ Commands:
 			k := ds.NewKey(fields[1])
 			v := strings.Join(fields[2:], " ")
 			err := crdt.Put(k, []byte(v))
-			data := fields[1] + ":" + fields[2]
-			//广播发布消息
-			topic.Publish(ctx, StringToBytes(data))
 			if err != nil {
 				printErr(err)
 				continue
 			}
+
+			//data := fields[1] + ":" + fields[2]
+			//ctx.Value(fields[1])
+			//广播发布消息
+			topic.Publish(ctx, StringToBytes(fields[2]))
 		}
 		fmt.Printf("> ")
 	}
