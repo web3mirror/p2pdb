@@ -174,7 +174,6 @@ func main() {
 	//死循环监听订阅
 	go func() {
 		for {
-			ctx.Value("test")
 			msg, err := netSubs.Next(ctx)
 			if err != nil {
 				fmt.Println(err)
@@ -245,6 +244,18 @@ func main() {
 		logger.Fatal(err)
 	}
 	defer crdt.Close()
+
+	go func() {
+		for {
+			str, err := pubsubBC.Next()
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			beego.Debug("Subscribe:")
+			beego.Debug("GetStr:" + BytesToString(str))
+		}
+	}()
 
 	fmt.Println("Bootstrapping... bstrAddress is " + bstrAddress)
 	//开启本地广播，此处应该调整为配置文件,可配置多个
@@ -373,7 +384,6 @@ Commands:
 			}
 
 			//data := fields[1] + ":" + fields[2]
-			ctx.Value("test")
 			//广播发布消息
 			topic.Publish(ctx, StringToBytes(fields[2]))
 		}
