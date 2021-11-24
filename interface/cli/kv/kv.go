@@ -248,12 +248,16 @@ func main() {
 	go func() {
 		for {
 			str, err := pubsubBC.Next()
+
 			if err != nil {
-				fmt.Println(err)
+				//fmt.Println(err)
 				break
 			}
-			beego.Debug("Subscribe:")
-			beego.Debug("GetStr:" + BytesToString(str))
+			if BytesToString(str) != "" {
+				beego.Debug("Subscribe:")
+				beego.Debug("GetStr:" + BytesToString(str))
+			}
+
 		}
 	}()
 
@@ -385,7 +389,7 @@ Commands:
 
 			//data := fields[1] + ":" + fields[2]
 			//广播发布消息
-			topic.Publish(ctx, StringToBytes(fields[2]))
+			//	topic.Publish(ctx, StringToBytes(fields[2]))
 		}
 		fmt.Printf("> ")
 	}
