@@ -160,6 +160,11 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	//开始订阅
+	netSubs, err := topic.Subscribe()
+	if err != nil {
+		logger.Fatal(err)
+	}
 
 	// Use a special pubsub topic to avoid disconnecting
 	// from globaldb peers.
@@ -169,12 +174,7 @@ func main() {
 	//死循环监听订阅
 	go func() {
 		for {
-			//开始订阅
-			netSubs, err := topic.Subscribe()
-			if err != nil {
-				logger.Fatal(err)
-			}
-
+			ctx.Value("test")
 			msg, err := netSubs.Next(ctx)
 			if err != nil {
 				fmt.Println(err)
@@ -373,7 +373,7 @@ Commands:
 			}
 
 			//data := fields[1] + ":" + fields[2]
-			//ctx.Value(fields[1])
+			ctx.Value("test")
 			//广播发布消息
 			topic.Publish(ctx, StringToBytes(fields[2]))
 		}
