@@ -46,6 +46,12 @@ var (
 	config      = beego.AppConfig.String("config")
 )
 
+// DiscoveryInterval is how often we re-publish our mDNS records.
+const DiscoveryInterval = time.Hour
+
+// DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+const DiscoveryServiceTag = "pubsub-p2pdb-example"
+
 // func p2pConfig() {
 // 	cfg, err := ini.Load("my.ini")
 // 	if err != nil {
@@ -162,6 +168,11 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	// setup local mDNS discovery
+	// if err := setupDiscovery(h); err != nil {
+	// 	panic(err)
+	// }
+
 	//根据topic 进行订阅
 	topic, err := psub.Join(netTopic)
 	if err != nil {
@@ -172,38 +183,8 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
-
-	// Use a special pubsub topic to avoid disconnecting
-	// from globaldb peers.
-	// Host 是一个参与 p2p 网络的对象，它实现协议或提供服务。它处理像服务器一样请求，像客户端一样发出请求。
-	// 之所以称为 Host，是因为它既是 Server 又是 Client（还有 Peer
-	// 可能会引起混淆）。
-	//死循环监听订阅
-	go func() {
-		for {
-			msg, err := netSubs.Next(ctx)
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			beego.Debug("Subscribe:")
-			beego.Debug("GetTopic:" + msg.GetTopic())
-			beego.Debug("GetKey:" + BytesToString(msg.GetKey()))
-			beego.Debug("GetSeqno:")
-			beego.Debug(msg.GetSeqno())
-			beego.Debug("GetSignature:" + BytesToString(msg.GetSignature()))
-			beego.Debug("GetData:" + BytesToString(msg.GetData()))
-			cm := new(Message)
-			err = json.Unmarshal(msg.Data, cm)
-			if err != nil {
-				continue
-			}
-			beego.Debug("msg.Data:")
-			beego.Debug(cm)
-			//ConnManager 返回这个host连接管理器
-			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
-		}
-	}()
+	//读取数据
+	loopSub(netSubs, ctx, h)
 
 	//发布消息
 
@@ -281,6 +262,9 @@ func main() {
 	bstr, _ := multiaddr.NewMultiaddr(bstrAddress)
 
 	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
+	beego.Debug("AddrInfoFromP2pAddr:")
+	beego.Debug(inf.Addrs)
+	beego.Debug(inf.ID)
 	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
 	ipfs.Bootstrap(list)
 	h.ConnManager().TagPeer(inf.ID, "keep", 100)
@@ -419,6 +403,39 @@ Commands:
 	}
 }
 
+func loopSub(netSubs *pubsub.Subscription, ctx context.Context, h host.Host) {
+	// Use a special pubsub topic to avoid disconnecting
+	// from globaldb peers.
+	// Host 是一个参与 p2p 网络的对象，它实现协议或提供服务。它处理像服务器一样请求，像客户端一样发出请求。
+	// 之所以称为 Host，是因为它既是 Server 又是 Client（还有 Peer
+	// 可能会引起混淆）。
+	//死循环监听订阅
+	go func() {
+		for {
+			msg, err := netSubs.Next(ctx)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			beego.Debug("Subscribe:")
+			beego.Debug("GetTopic:" + msg.GetTopic())
+			beego.Debug("GetKey:" + BytesToString(msg.GetKey()))
+			beego.Debug("GetSeqno:")
+			beego.Debug(msg.GetSeqno())
+			beego.Debug("GetSignature:" + BytesToString(msg.GetSignature()))
+			beego.Debug("GetData:" + BytesToString(msg.GetData()))
+			cm := new(Message)
+			err = json.Unmarshal(msg.Data, cm)
+			if err != nil {
+				continue
+			}
+			beego.Debug("msg.Data:")
+			beego.Debug(cm)
+			//ConnManager 返回这个host连接管理器
+			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
+		}
+	}()
+}
 func printErr(err error) {
 	fmt.Println("error:", err)
 	fmt.Println("> ")
@@ -445,3 +462,16 @@ func StringToBytes(s string) []byte {
 	bh := reflect.SliceHeader{sh.Data, sh.Len, 0}
 	return *(*[]byte)(unsafe.Pointer(&bh))
 }
+
+// discoveryNotifee gets notified when we find a new peer via mDNS discovery
+type discoveryNotifee struct {
+	h host.Host
+}
+
+// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
+// This lets us automatically discover peers on the same LAN and connect to them.
+// func setupDiscovery(h host.Host) error {
+// 	// setup mDNS discovery to find local peers
+// 	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
+// 	return s.Start()
+// }
