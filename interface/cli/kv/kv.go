@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -54,6 +55,12 @@ var (
 // 	fmt.Println("bstrAddress:", cfg.Section("").Key("bstrAddress").String())
 
 // }
+
+// ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
+type Message struct {
+	Key   string
+	Value string
+}
 
 func main() {
 	// beego.Debug("main start...")
@@ -186,6 +193,13 @@ func main() {
 			beego.Debug(msg.GetSeqno())
 			beego.Debug("GetSignature:" + BytesToString(msg.GetSignature()))
 			beego.Debug("GetData:" + BytesToString(msg.GetData()))
+			cm := new(Message)
+			err = json.Unmarshal(msg.Data, cm)
+			if err != nil {
+				continue
+			}
+			beego.Debug("msg.Data:")
+			beego.Debug(cm)
 			//ConnManager 返回这个host连接管理器
 			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
 		}
@@ -387,9 +401,19 @@ Commands:
 				continue
 			}
 
-			//data := fields[1] + ":" + fields[2]
+			//data :=  + ":" +
 			//广播发布消息
-			//	topic.Publish(ctx, StringToBytes(fields[2]))
+			m := Message{
+				Key:   fields[1],
+				Value: fields[2],
+			}
+			msgBytes, err := json.Marshal(m)
+			if err != nil {
+				printErr(err)
+				continue
+			}
+			//
+			topic.Publish(ctx, msgBytes)
 		}
 		fmt.Printf("> ")
 	}
