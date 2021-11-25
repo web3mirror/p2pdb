@@ -23,7 +23,7 @@ import (
 const DiscoveryInterval = time.Hour
 
 // DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
-const DiscoveryServiceTag = "pubsub-chat-example"
+const DiscoveryServiceTag = "p2pdb-example"
 
 func main() {
 	// parse some flags to set our nickname and the room to join
@@ -66,10 +66,33 @@ func main() {
 	}
 
 	// draw the UI
+	// app := tview.NewApplication()
+	// msgBox := tview.NewTextView()
+	// peersList := tview.NewTextView()
+	// peersList.SetBorder(true)
+	// peersList.SetTitle("Peers")
+	// peersList.SetChangedFunc(func() { app.Draw() })
+	// beego.Debug("debug peer:")
+	// beego.Debug(peersList)
+	// inputCh := make(chan string, 32)
+	// inputCh <- "test3"
+	// ui := &ChatUI{
+	// 	cr:        cr,
+	// 	app:       app,
+	// 	peersList: peersList,
+	// 	msgW:      msgBox,
+	// 	inputCh:   inputCh,
+	// 	doneCh:    make(chan struct{}, 1),
+	// }
+
 	ui := NewChatUI(cr)
+	// an input field for typing messages into
+	//cr.readLoop()
+
 	if err = ui.Run(); err != nil {
 		printErr("error running text UI: %s", err)
 	}
+
 }
 
 // printErr is like fmt.Printf, but writes to stderr.
@@ -365,6 +388,7 @@ func (ui *ChatUI) handleEvents() {
 	for {
 		select {
 		case input := <-ui.inputCh:
+			input = "test9999"
 			// when the user types in a line, publish it to the chat room and print to the message window
 			err := ui.cr.Publish(input)
 			if err != nil {
