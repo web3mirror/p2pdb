@@ -1,416 +1,395 @@
 package main
 
-// This is a CLI that lets you join a global permissionless CRDT-based
-// database using CRDTs and IPFS.
-
 import (
-	"bufio"
 	"context"
-	"database/sql"
+	"encoding/json"
+	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
-	crdt "github.com/ipfs/go-ds-crdt"
-	logging "github.com/ipfs/go-log/v2"
-
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/astaxie/beego"
+	"github.com/gdamore/tcell/v2"
+	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-
-	ipfslite "github.com/hsanjuan/ipfs-lite"
-	"github.com/mitchellh/go-homedir"
-
-	multiaddr "github.com/multiformats/go-multiaddr"
-
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/rivo/tview"
 )
 
-var (
-	logger    = logging.Logger("p2pdb")
-	listen, _ = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
-	topicName = "p2pdb-example"
-	netTopic  = "p2pdb-example-net"
-	config    = "p2pdb-example"
-	dbPath    = "./"
-	dbName    = "p2pdb.db"
-)
+// DiscoveryInterval is how often we re-publish our mDNS records.
+const DiscoveryInterval = time.Hour
+
+// DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+const DiscoveryServiceTag = "pubsub-chat-example"
 
 func main() {
-	p2p()
+	// parse some flags to set our nickname and the room to join
+	nickFlag := flag.String("nick", "", "nickname to use in chat. will be generated if empty")
+	roomFlag := flag.String("room", "awesome-chat-room", "name of chat room to join")
+	flag.Parse()
+
+	ctx := context.Background()
+
+	// create a new libp2p Host that listens on a random TCP port
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	if err != nil {
+		panic(err)
+	}
+
+	// create a new PubSub service using the GossipSub router
+	ps, err := pubsub.NewGossipSub(ctx, h)
+	if err != nil {
+		panic(err)
+	}
+
+	// setup local mDNS discovery
+	if err := setupDiscovery(h); err != nil {
+		panic(err)
+	}
+
+	// use the nickname from the cli flag, or a default if blank
+	nick := *nickFlag
+	if len(nick) == 0 {
+		nick = defaultNick(h.ID())
+	}
+
+	// join the room from the cli flag, or the flag default
+	room := *roomFlag
+
+	// join the chat room
+	cr, err := JoinChatRoom(ctx, ps, h.ID(), nick, room)
+	if err != nil {
+		panic(err)
+	}
+
+	// draw the UI
+	ui := NewChatUI(cr)
+	if err = ui.Run(); err != nil {
+		printErr("error running text UI: %s", err)
+	}
 }
 
-var db *sql.DB // 全局变量
-func openDb(name string) *sql.DB {
-
-	db, err := sql.Open("sqlite3", name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	return db
+// printErr is like fmt.Printf, but writes to stderr.
+func printErr(m string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, m, args...)
 }
 
-func Exec(sqlStmt string) {
-	_, err := db.Exec(sqlStmt, db)
+// defaultNick generates a nickname based on the $USER environment variable and
+// the last 8 chars of a peer ID.
+func defaultNick(p peer.ID) string {
+	return fmt.Sprintf("%s-%s", os.Getenv("USER"), shortID(p))
+}
+
+// shortID returns the last 8 chars of a base58-encoded peer id.
+func shortID(p peer.ID) string {
+	pretty := p.Pretty()
+	return pretty[len(pretty)-8:]
+}
+
+// discoveryNotifee gets notified when we find a new peer via mDNS discovery
+type discoveryNotifee struct {
+	h host.Host
+}
+
+// HandlePeerFound connects to peers discovered via mDNS. Once they're connected,
+// the PubSub system will automatically start interacting with them if they also
+// support PubSub.
+func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	fmt.Printf("discovered new peer %s\n", pi.ID.Pretty())
+	err := n.h.Connect(context.Background(), pi)
 	if err != nil {
-		log.Printf("%q: %s\n", err, sqlStmt)
-		return
+		fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
 	}
 }
 
-func p2p() {
-	// Bootstrappers are using 1024 keys. See:
-	// 启动节点 1024 keys
-	// https://github.com/ipfs/infra/issues/378
-	crypto.MinRsaKeyBits = 1024
-
-	//设置日志级别
-	logging.SetLogLevel("*", "error")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	//获取用户的主目录
-	dir, err := homedir.Dir()
-	if err != nil {
-		logger.Fatal(err)
-	}
-	//config=globaldb-example
-	data := filepath.Join(dir, config)
-
-	store, err := ipfslite.BadgerDatastore(data)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer store.Close()
-
-	// filepath=home/user/globaldb-example/key
-	keyPath := filepath.Join(data, "key")
-	var priv crypto.PrivKey
-	_, err = os.Stat(keyPath)
-	if os.IsNotExist(err) {
-		priv, _, err = crypto.GenerateKeyPair(crypto.Ed25519, 1)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		data, err := crypto.MarshalPrivateKey(priv)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		err = ioutil.WriteFile(keyPath, data, 0400)
-		if err != nil {
-			logger.Fatal(err)
-		}
-	} else if err != nil {
-		logger.Fatal(err)
-	} else {
-		key, err := ioutil.ReadFile(keyPath)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		priv, err = crypto.UnmarshalPrivateKey(key)
-		if err != nil {
-			logger.Fatal(err)
-		}
-
-	}
-	pid, err := peer.IDFromPublicKey(priv.GetPublic())
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	h, dht, err := ipfslite.SetupLibp2p(
-		ctx,
-		priv,
-		nil,
-		[]multiaddr.Multiaddr{listen},
-		nil,
-		ipfslite.Libp2pOptionsExtra...,
-	)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer h.Close()
-	defer dht.Close()
-
-	psub, err := pubsub.NewGossipSub(ctx, h)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	topic, err := psub.Join(netTopic)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	//根据topic 进行订阅
-	netSubs, err := topic.Subscribe()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	// Use a special pubsub topic to avoid disconnecting
-	// from globaldb peers.
-	// Host 是一个参与 p2p 网络的对象，它实现协议或提供服务。它处理像服务器一样请求，像客户端一样发出请求。
-	// 之所以称为 Host，是因为它既是 Server 又是 Client（还有 Peer
-	// 可能会引起混淆）。
-	//死循环监听订阅
-	go func() {
-		for {
-			msg, err := netSubs.Next(ctx)
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			//ConnManager 返回这个host连接管理器
-			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
-		}
-	}()
-
-	//发布消息
-
-	//select语句和switch语句一样，它不是循环，它只会选择一个case来处理，如果想一直处理channel，你可以在外面加一个无限的for循环：
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				//打印发布消息
-
-				//fmt.Println("触发广播====")
-				//广播发布消息
-				topic.Publish(ctx, []byte("hi!"))
-				time.Sleep(20 * time.Second)
-			}
-		}
-	}()
-
-	ipfs, err := ipfslite.New(ctx, store, h, dht, nil)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	//广播
-	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, psub, topicName)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	//crdt 广播配置
-	opts := crdt.DefaultOptions()
-	opts.Logger = logger //日志
-	opts.RebroadcastInterval = 5 * time.Second
-	//put 时输出值
-	opts.PutHook = func(k ds.Key, v []byte) {
-		fmt.Printf("Sql: [%s] -> %s\n", k, string(v))
-
-	}
-	// 删除值
-	opts.DeleteHook = func(k ds.Key) {
-		fmt.Printf("Removed: [%s]\n", k)
-	}
-
-	//使用crdt 进行广播
-	crdt, err := crdt.New(store, ds.NewKey("crdt"), ipfs, pubsubBC, opts)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer crdt.Close()
-
-	fmt.Println("Bootstrapping...")
-	//开启本地广播，此处应该调整为配置文件,可配置多个
-	//bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
-	bstr, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH")
-
-	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
-	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
-	ipfs.Bootstrap(list)
-	h.ConnManager().TagPeer(inf.ID, "keep", 100)
-	dump(pid, data, h)
+// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
+// This lets us automatically discover peers on the same LAN and connect to them.
+func setupDiscovery(h host.Host) error {
+	// setup mDNS discovery to find local peers
+	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
+	return s.Start()
 }
 
-func dump(pid peer.ID, data string, h host.Host) {
-	fmt.Printf(`
-	Peer ID: %s
-	Listen address: %s
-	Topic: %s
-	Data Folder: %s
-	
-	welcome to p2pdb
-	
-	Commands:
-	
-	> create               ->  create table 
-	> insert <key>         ->  insert data 
-	> delete <key> <value> ->  delete data 
-	> select               ->  select data
-	> update               ->  update data
-	`,
-		pid, listen, topicName, data,
-	)
+// ChatRoomBufSize is the number of incoming messages to buffer for each topic.
+const ChatRoomBufSize = 128
 
-	if len(os.Args) > 1 && os.Args[1] == "daemon" {
-		fmt.Println("Running in daemon mode")
-		go func() {
-			for {
-				fmt.Printf("%s - %d connected peers\n", time.Now().Format(time.Stamp), len(connectedPeers(h)))
-				time.Sleep(10 * time.Second)
-			}
-		}()
-		signalChan := make(chan os.Signal, 20)
-		signal.Notify(
-			signalChan,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-			syscall.SIGHUP,
-		)
-		<-signalChan
-		return
+// ChatRoom represents a subscription to a single PubSub topic. Messages
+// can be published to the topic with ChatRoom.Publish, and received
+// messages are pushed to the Messages channel.
+type ChatRoom struct {
+	// Messages is a channel of messages received from other peers in the chat room
+	Messages chan *ChatMessage
+
+	ctx   context.Context
+	ps    *pubsub.PubSub
+	topic *pubsub.Topic
+	sub   *pubsub.Subscription
+
+	roomName string
+	self     peer.ID
+	nick     string
+}
+
+// ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
+type ChatMessage struct {
+	Message    string
+	SenderID   string
+	SenderNick string
+}
+
+// JoinChatRoom tries to subscribe to the PubSub topic for the room name, returning
+// a ChatRoom on success.
+func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickname string, roomName string) (*ChatRoom, error) {
+	// join the pubsub topic
+	topic, err := ps.Join(topicName(roomName))
+	if err != nil {
+		return nil, err
 	}
 
-	fmt.Printf("> ")
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		text := scanner.Text()
-		fields := strings.Fields(text)
-		if len(fields) == 0 {
-			fmt.Printf("> ")
+	// and subscribe to it
+	sub, err := topic.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+
+	cr := &ChatRoom{
+		ctx:      ctx,
+		ps:       ps,
+		topic:    topic,
+		sub:      sub,
+		self:     selfID,
+		nick:     nickname,
+		roomName: roomName,
+		Messages: make(chan *ChatMessage, ChatRoomBufSize),
+	}
+
+	// start reading messages from the subscription in a loop
+	go cr.readLoop()
+	return cr, nil
+}
+
+// Publish sends a message to the pubsub topic.
+func (cr *ChatRoom) Publish(message string) error {
+	m := ChatMessage{
+		Message:    message,
+		SenderID:   cr.self.Pretty(),
+		SenderNick: cr.nick,
+	}
+	msgBytes, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	return cr.topic.Publish(cr.ctx, msgBytes)
+}
+
+func (cr *ChatRoom) ListPeers() []peer.ID {
+	return cr.ps.ListPeers(topicName(cr.roomName))
+}
+
+// readLoop pulls messages from the pubsub topic and pushes them onto the Messages channel.
+func (cr *ChatRoom) readLoop() {
+	for {
+		msg, err := cr.sub.Next(cr.ctx)
+		if err != nil {
+			close(cr.Messages)
+			return
+		}
+		// only forward messages delivered by others
+		if msg.ReceivedFrom == cr.self {
 			continue
 		}
+		cm := new(ChatMessage)
+		err = json.Unmarshal(msg.Data, cm)
+		beego.Debug("debug:")
+		beego.Debug(cm.Message)
+		if err != nil {
+			continue
+		}
+		// send valid messages onto the Messages channel
+		cr.Messages <- cm
+	}
+}
 
-		cmd := fields[0]
+func topicName(roomName string) string {
+	return "chat-room:" + roomName
+}
 
-		switch cmd {
-		case "exit", "quit":
+// ChatUI is a Text User Interface (TUI) for a ChatRoom.
+// The Run method will draw the UI to the terminal in "fullscreen"
+// mode. You can quit with Ctrl-C, or by typing "/quit" into the
+// chat prompt.
+type ChatUI struct {
+	cr        *ChatRoom
+	app       *tview.Application
+	peersList *tview.TextView
+
+	msgW    io.Writer
+	inputCh chan string
+	doneCh  chan struct{}
+}
+
+// NewChatUI returns a new ChatUI struct that controls the text UI.
+// It won't actually do anything until you call Run().
+func NewChatUI(cr *ChatRoom) *ChatUI {
+	app := tview.NewApplication()
+
+	// make a text view to contain our chat messages
+	msgBox := tview.NewTextView()
+	msgBox.SetDynamicColors(true)
+	msgBox.SetBorder(true)
+	msgBox.SetTitle(fmt.Sprintf("Room: %s", cr.roomName))
+
+	// text views are io.Writers, but they don't automatically refresh.
+	// this sets a change handler to force the app to redraw when we get
+	// new messages to display.
+	msgBox.SetChangedFunc(func() {
+		app.Draw()
+	})
+
+	// an input field for typing messages into
+	inputCh := make(chan string, 32)
+	input := tview.NewInputField().
+		SetLabel(cr.nick + " > ").
+		SetFieldWidth(0).
+		SetFieldBackgroundColor(tcell.ColorBlack)
+
+	// the done func is called when the user hits enter, or tabs out of the field
+	input.SetDoneFunc(func(key tcell.Key) {
+		if key != tcell.KeyEnter {
+			// we don't want to do anything if they just tabbed away
 			return
-		case "debug":
-			if len(fields) < 2 {
-				fmt.Println("debug <on/off/peers>")
-			}
-			st := fields[1]
-			switch st {
-			case "on":
-				logging.SetLogLevel("globaldb", "debug")
-			case "off":
-				logging.SetLogLevel("globaldb", "error")
-			case "peers": //查看对等节点
-				// for _, p := range connectedPeers(h) {
-				// 	addrs, err := peer.AddrInfoToP2pAddrs(p)
-				// 	if err != nil {
-				// 		logger.Warn(err)
-				// 		continue
-				// 	}
-				// 	for _, a := range addrs {
-				// 		fmt.Println(a)
-				// 	}
-				// }
-			}
-		case "select":
-			db, err := sql.Open("sqlite3", dbPath+dbName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer db.Close()
-			rows, err := db.Query(text)
-			if err != nil {
-				fmt.Println("sql error-> %s", err)
-			}
-			for rows.Next() {
-				var id int
-				var name string
-				err = rows.Scan(&id, &name)
-				fmt.Println(id, name)
-			}
-		case "insert":
-			if len(fields) < 4 {
-				fmt.Println("sql error->")
-				fmt.Println("insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');")
-				continue
-			}
-			db, err := sql.Open("sqlite3", dbPath+dbName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer db.Close()
-			_, err = db.Exec(text)
-			if err != nil {
-				fmt.Println("sql error-> %s"+text, err)
-				continue
-			}
-			fmt.Println("sql execute success-> " + text)
-		case "create":
-			if len(fields) < 2 {
-				fmt.Println("sql error->")
-				fmt.Println("create table p2pdb (id integer not null primary key, name text);")
-				continue
-			}
-			name := fields[1]
-			//	v := strings.Join(fields[2:], " ")
-			switch name {
-			// case "database":
-			// 	if len(fields) < 3 {
-			// 		fmt.Println("sql error->")
-			// 		fmt.Println("create database p2pdb;")
-			// 		continue
-			// 	}
-			// 	os.Remove(dbPath + dbName)
-			// 	db, err := sql.Open("sqlite3", dbPath+dbName)
-			// 	if err != nil {
-			// 		log.Fatal(err)
-			// 	}
-			// 	defer db.Close()
-
-			// 	fmt.Printf("databse file is exsit in  %s /n", dbPath+dbName)
-			case "table":
-				if len(fields) < 3 {
-					fmt.Println("sql error->")
-					fmt.Println("create table p2pdb (id integer not null primary key, name text);")
-					fmt.Printf("> ")
-					continue
-				}
-				db, err := sql.Open("sqlite3", dbPath+dbName)
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer db.Close()
-				sqlStmt := text
-				_, err = db.Exec(sqlStmt)
-				if err != nil {
-					log.Println("%q: %s\n", err, sqlStmt)
-					continue
-				}
-				// sqlStmt := text
-				// Exec(sqlStmt)
-				fmt.Println("sql execute success-> %s", text)
-			}
-
+		}
+		line := input.GetText()
+		if len(line) == 0 {
+			// ignore blank lines
+			return
 		}
 
-		fmt.Printf("> ")
+		// bail if requested
+		if line == "/quit" {
+			app.Stop()
+			return
+		}
+
+		// send the line onto the input chan and reset the field text
+		inputCh <- line
+		input.SetText("")
+	})
+
+	// make a text view to hold the list of peers in the room, updated by ui.refreshPeers()
+	peersList := tview.NewTextView()
+	peersList.SetBorder(true)
+	peersList.SetTitle("Peers")
+	peersList.SetChangedFunc(func() { app.Draw() })
+
+	// chatPanel is a horizontal box with messages on the left and peers on the right
+	// the peers list takes 20 columns, and the messages take the remaining space
+	chatPanel := tview.NewFlex().
+		AddItem(msgBox, 0, 1, false).
+		AddItem(peersList, 20, 1, false)
+
+	// flex is a vertical box with the chatPanel on top and the input field at the bottom.
+
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(chatPanel, 0, 1, false).
+		AddItem(input, 1, 1, true)
+
+	app.SetRoot(flex, true)
+
+	return &ChatUI{
+		cr:        cr,
+		app:       app,
+		peersList: peersList,
+		msgW:      msgBox,
+		inputCh:   inputCh,
+		doneCh:    make(chan struct{}, 1),
 	}
 }
 
-func printErr(err error) {
-	fmt.Println("error:", err)
-	fmt.Println("> ")
+// Run starts the chat event loop in the background, then starts
+// the event loop for the text UI.
+func (ui *ChatUI) Run() error {
+	go ui.handleEvents()
+	defer ui.end()
+
+	return ui.app.Run()
 }
 
-//对等节点连接，返回对等节点信息
-func connectedPeers(h host.Host) []*peer.AddrInfo {
-	var pinfos []*peer.AddrInfo
-	for _, c := range h.Network().Conns() {
-		pinfos = append(pinfos, &peer.AddrInfo{
-			ID:    c.RemotePeer(),
-			Addrs: []multiaddr.Multiaddr{c.RemoteMultiaddr()},
-		})
+// end signals the event loop to exit gracefully
+func (ui *ChatUI) end() {
+	ui.doneCh <- struct{}{}
+}
+
+// refreshPeers pulls the list of peers currently in the chat room and
+// displays the last 8 chars of their peer id in the Peers panel in the ui.
+func (ui *ChatUI) refreshPeers() {
+	peers := ui.cr.ListPeers()
+
+	// clear is not threadsafe so we need to take the lock.
+	ui.peersList.Lock()
+	ui.peersList.Clear()
+	ui.peersList.Unlock()
+
+	for _, p := range peers {
+		fmt.Fprintln(ui.peersList, shortID(p))
 	}
-	return pinfos
+
+	ui.app.Draw()
+}
+
+// displayChatMessage writes a ChatMessage from the room to the message window,
+// with the sender's nick highlighted in green.
+func (ui *ChatUI) displayChatMessage(cm *ChatMessage) {
+	prompt := withColor("green", fmt.Sprintf("<%s>:", cm.SenderNick))
+	fmt.Fprintf(ui.msgW, "%s %s\n", prompt, cm.Message)
+}
+
+// displaySelfMessage writes a message from ourself to the message window,
+// with our nick highlighted in yellow.
+func (ui *ChatUI) displaySelfMessage(msg string) {
+	prompt := withColor("yellow", fmt.Sprintf("<%s>:", ui.cr.nick))
+	fmt.Fprintf(ui.msgW, "%s %s\n", prompt, msg)
+}
+
+// handleEvents runs an event loop that sends user input to the chat room
+// and displays messages received from the chat room. It also periodically
+// refreshes the list of peers in the UI.
+func (ui *ChatUI) handleEvents() {
+	peerRefreshTicker := time.NewTicker(time.Second)
+	defer peerRefreshTicker.Stop()
+
+	for {
+		select {
+		case input := <-ui.inputCh:
+			// when the user types in a line, publish it to the chat room and print to the message window
+			err := ui.cr.Publish(input)
+			if err != nil {
+				printErr("publish error: %s", err)
+			}
+			ui.displaySelfMessage(input)
+
+		case m := <-ui.cr.Messages:
+			// when we receive a message from the chat room, print it to the message window
+			ui.displayChatMessage(m)
+
+		case <-peerRefreshTicker.C:
+			// refresh the list of peers in the chat room periodically
+			ui.refreshPeers()
+
+		case <-ui.cr.ctx.Done():
+			return
+
+		case <-ui.doneCh:
+			return
+		}
+	}
+}
+
+// withColor wraps a string with color tags for display in the messages text box.
+func withColor(color, msg string) string {
+	return fmt.Sprintf("[%s]%s[-]", color, msg)
 }

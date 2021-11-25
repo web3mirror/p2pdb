@@ -265,7 +265,9 @@ func main() {
 	beego.Debug("AddrInfoFromP2pAddr:")
 	beego.Debug(inf.Addrs)
 	beego.Debug(inf.ID)
+
 	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
+
 	ipfs.Bootstrap(list)
 	h.ConnManager().TagPeer(inf.ID, "keep", 100)
 
