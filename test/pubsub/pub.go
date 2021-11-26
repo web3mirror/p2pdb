@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -44,50 +43,21 @@ func main() {
 		panic(err)
 	}
 
-	// and subscribe to it
-	sub, err := topic.Subscribe()
-	if err != nil {
-		panic(err)
+	for {
+		time.Sleep(1 * time.Second)
+		input := DataMessage{
+			Message:    "123",
+			SenderID:   "123",
+			SenderNick: "1233",
+		}
+
+		msgBytes, err := json.Marshal(input)
+		if err != nil {
+			panic(err)
+		}
+		topic.Publish(ctx, msgBytes)
 	}
-	go func() {
-		for {
-			msg, err := sub.Next(ctx)
-			if err != nil {
-				panic(err)
-				return
-			}
-			// only forward messages delivered by others
 
-			cm := new(DataMessage)
-			err = json.Unmarshal(msg.Data, cm)
-			beego.Debug("debug:")
-			beego.Debug(cm.Message)
-			if err != nil {
-				continue
-			}
-			beego.Debug(cm)
-			// send valid messages onto the Messages channel
-			//Messages <- cm
-		}
-	}()
-	go func() {
-		peerRefreshTicker := time.NewTicker(time.Second)
-		defer peerRefreshTicker.Stop()
-
-		for {
-			input := DataMessage{
-				Message:    "123",
-				SenderID:   "123",
-				SenderNick: "1233",
-			}
-
-			msgBytes, err := json.Marshal(input)
-			if err != nil {
-				panic(err)
-			}
-			topic.Publish(ctx, msgBytes)
-		}
-	}()
 }
 
 // ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
@@ -99,14 +69,6 @@ type DataMessage struct {
 
 func topicName(Name string) string {
 	return "chat-room:" + Name
-}
-
-func sub() {
-
-}
-
-func pub() {
-
 }
 
 // discoveryNotifee gets notified when we find a new peer via mDNS discovery

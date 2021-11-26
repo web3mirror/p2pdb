@@ -16,10 +16,8 @@ require (
 	github.com/libp2p/go-libp2p-core v0.11.0
 	github.com/libp2p/go-libp2p-peerstore v0.4.0
 	github.com/libp2p/go-libp2p-pubsub v0.6.0
-	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.4.1
-	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/rivo/tview v0.0.0-20210125085121-dbc1f32bb1d0
 )
