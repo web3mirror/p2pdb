@@ -7,27 +7,23 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"go-libp2p"
+	"go-libp2p/p2p/discovery/mdns"
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
-	crdt "github.com/ipfs/go-ds-crdt"
+	"github.com/astaxie/beego"
 	logging "github.com/ipfs/go-log/v2"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-
-	ipfslite "github.com/hsanjuan/ipfs-lite"
-	"github.com/mitchellh/go-homedir"
 
 	multiaddr "github.com/multiformats/go-multiaddr"
 
@@ -36,208 +32,129 @@ import (
 
 var (
 	logger    = logging.Logger("p2pdb")
-	listen, _ = multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
+	listen    = "/ip4/0.0.0.0/tcp/0"
 	topicName = "p2pdb-example"
 	netTopic  = "p2pdb-example-net"
 	config    = "p2pdb-example"
-	dbPath    = "./"
+	dbPath    = "./data/"
 	dbName    = "p2pdb.db"
+	db        *sql.DB // 全局变量
 )
 
+// DiscoveryInterval is how often we re-publish our mDNS records.
+const DiscoveryInterval = time.Hour
+
+// DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+const DiscoveryServiceTag = "p2pdb-example"
+
+// ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
+type P2pdbLog struct {
+	Id   int
+	Type string
+	Sql  string
+}
+
+// discoveryNotifee gets notified when we find a new peer via mDNS discovery
+type discoveryNotifee struct {
+	h host.Host
+}
+
 func main() {
-	p2p()
+	ctx := context.Background()
+	// create a new libp2p Host that listens on a random TCP port
+	h, err := libp2p.New(libp2p.ListenAddrStrings(listen))
+	if err != nil {
+		panic(err)
+	}
+
+	// create a new PubSub service using the GossipSub router
+	ps, err := pubsub.NewGossipSub(ctx, h)
+	if err != nil {
+		panic(err)
+	}
+
+	// setup local mDNS discovery
+	if err := setupDiscovery(h); err != nil {
+		panic(err)
+	}
+	topic, err := ps.Join(topicName)
+	if err != nil {
+		panic(err)
+	}
+
+	//pub(ps, ctx, topic)
+	sub(ps, ctx, topic)
+	run(h, ctx, topic)
+
 }
 
-var db *sql.DB // 全局变量
-func openDb(name string) *sql.DB {
+func pub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
 
-	db, err := sql.Open("sqlite3", name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	return db
-}
-
-func Exec(sqlStmt string) {
-	_, err := db.Exec(sqlStmt, db)
-	if err != nil {
-		log.Printf("%q: %s\n", err, sqlStmt)
-		return
-	}
-}
-
-func p2p() {
-	// Bootstrappers are using 1024 keys. See:
-	// 启动节点 1024 keys
-	// https://github.com/ipfs/infra/issues/378
-	crypto.MinRsaKeyBits = 1024
-
-	//设置日志级别
-	logging.SetLogLevel("*", "error")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	//获取用户的主目录
-	dir, err := homedir.Dir()
-	if err != nil {
-		logger.Fatal(err)
-	}
-	//config=globaldb-example
-	data := filepath.Join(dir, config)
-
-	store, err := ipfslite.BadgerDatastore(data)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer store.Close()
-
-	// filepath=home/user/globaldb-example/key
-	keyPath := filepath.Join(data, "key")
-	var priv crypto.PrivKey
-	_, err = os.Stat(keyPath)
-	if os.IsNotExist(err) {
-		priv, _, err = crypto.GenerateKeyPair(crypto.Ed25519, 1)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		data, err := crypto.MarshalPrivateKey(priv)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		err = ioutil.WriteFile(keyPath, data, 0400)
-		if err != nil {
-			logger.Fatal(err)
-		}
-	} else if err != nil {
-		logger.Fatal(err)
-	} else {
-		key, err := ioutil.ReadFile(keyPath)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		priv, err = crypto.UnmarshalPrivateKey(key)
-		if err != nil {
-			logger.Fatal(err)
-		}
-
-	}
-	pid, err := peer.IDFromPublicKey(priv.GetPublic())
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	h, dht, err := ipfslite.SetupLibp2p(
-		ctx,
-		priv,
-		nil,
-		[]multiaddr.Multiaddr{listen},
-		nil,
-		ipfslite.Libp2pOptionsExtra...,
-	)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer h.Close()
-	defer dht.Close()
-
-	psub, err := pubsub.NewGossipSub(ctx, h)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	topic, err := psub.Join(netTopic)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	//根据topic 进行订阅
-	netSubs, err := topic.Subscribe()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	// Use a special pubsub topic to avoid disconnecting
-	// from globaldb peers.
-	// Host 是一个参与 p2p 网络的对象，它实现协议或提供服务。它处理像服务器一样请求，像客户端一样发出请求。
-	// 之所以称为 Host，是因为它既是 Server 又是 Client（还有 Peer
-	// 可能会引起混淆）。
-	//死循环监听订阅
 	go func() {
 		for {
-			msg, err := netSubs.Next(ctx)
+			time.Sleep(1 * time.Second)
+			input := P2pdbLog{
+				Id:   123,
+				Type: "insert",
+				Sql:  "insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');",
+			}
+
+			msgBytes, err := json.Marshal(input)
 			if err != nil {
-				fmt.Println(err)
-				break
+				panic(err)
 			}
-			//ConnManager 返回这个host连接管理器
-			h.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
+			topic.Publish(ctx, msgBytes)
 		}
 	}()
 
-	//发布消息
-
-	//select语句和switch语句一样，它不是循环，它只会选择一个case来处理，如果想一直处理channel，你可以在外面加一个无限的for循环：
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				//打印发布消息
-
-				//fmt.Println("触发广播====")
-				//广播发布消息
-				topic.Publish(ctx, []byte("hi!"))
-				time.Sleep(20 * time.Second)
-			}
-		}
-	}()
-
-	ipfs, err := ipfslite.New(ctx, store, h, dht, nil)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	//广播
-	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, psub, topicName)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	//crdt 广播配置
-	opts := crdt.DefaultOptions()
-	opts.Logger = logger //日志
-	opts.RebroadcastInterval = 5 * time.Second
-	//put 时输出值
-	opts.PutHook = func(k ds.Key, v []byte) {
-		fmt.Printf("Sql: [%s] -> %s\n", k, string(v))
-
-	}
-	// 删除值
-	opts.DeleteHook = func(k ds.Key) {
-		fmt.Printf("Removed: [%s]\n", k)
-	}
-
-	//使用crdt 进行广播
-	crdt, err := crdt.New(store, ds.NewKey("crdt"), ipfs, pubsubBC, opts)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer crdt.Close()
-
-	fmt.Println("Bootstrapping...")
-	//开启本地广播，此处应该调整为配置文件,可配置多个
-	//bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
-	bstr, _ := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123/ipfs/12D3KooWMVdnQXeh97noZrUavoULs7GA2qQYhHTFRueDAmyprRaH")
-
-	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
-	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
-	ipfs.Bootstrap(list)
-	h.ConnManager().TagPeer(inf.ID, "keep", 100)
-	dump(pid, data, h)
 }
 
-func dump(pid peer.ID, data string, h host.Host) {
+func publish(Type string, Sql string, ctx context.Context, topic *pubsub.Topic) {
+	input := P2pdbLog{
+		Id:   123,
+		Type: Type,
+		Sql:  Sql,
+	}
+	msgBytes, err := json.Marshal(input)
+	if err != nil {
+		panic(err)
+	}
+	topic.Publish(ctx, msgBytes)
+}
+
+func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
+
+	// and subscribe to it
+	sub, err := topic.Subscribe()
+	if err != nil {
+		panic(err)
+	}
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			msg, err := sub.Next(ctx)
+			if err != nil {
+				panic(err)
+				return
+			}
+			// only forward messages delivered by others
+
+			cm := new(P2pdbLog)
+			err = json.Unmarshal(msg.Data, cm)
+			beego.Debug("debug:")
+			beego.Debug(cm.Sql)
+			if err != nil {
+				continue
+			}
+			beego.Debug(cm)
+			// send valid messages onto the Messages channel
+			//Messages <- cm
+		}
+	}()
+
+}
+
+func run(h host.Host, ctx context.Context, topic *pubsub.Topic) {
 	fmt.Printf(`
 	Peer ID: %s
 	Listen address: %s
@@ -254,7 +171,7 @@ func dump(pid peer.ID, data string, h host.Host) {
 	> select               ->  select data
 	> update               ->  update data
 	`,
-		pid, listen, topicName, data,
+		"", listen, topicName, "",
 	)
 
 	if len(os.Args) > 1 && os.Args[1] == "daemon" {
@@ -279,129 +196,149 @@ func dump(pid peer.ID, data string, h host.Host) {
 	fmt.Printf("> ")
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		text := scanner.Text()
-		fields := strings.Fields(text)
+		p2pdbSql := scanner.Text()
+		fields := strings.Fields(p2pdbSql)
 		if len(fields) == 0 {
 			fmt.Printf("> ")
 			continue
 		}
-
-		cmd := fields[0]
-
-		switch cmd {
-		case "exit", "quit":
-			return
-		case "debug":
-			if len(fields) < 2 {
-				fmt.Println("debug <on/off/peers>")
-			}
-			st := fields[1]
-			switch st {
-			case "on":
-				logging.SetLogLevel("globaldb", "debug")
-			case "off":
-				logging.SetLogLevel("globaldb", "error")
-			case "peers": //查看对等节点
-				// for _, p := range connectedPeers(h) {
-				// 	addrs, err := peer.AddrInfoToP2pAddrs(p)
-				// 	if err != nil {
-				// 		logger.Warn(err)
-				// 		continue
-				// 	}
-				// 	for _, a := range addrs {
-				// 		fmt.Println(a)
-				// 	}
-				// }
-			}
-		case "select":
-			db, err := sql.Open("sqlite3", dbPath+dbName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer db.Close()
-			rows, err := db.Query(text)
-			if err != nil {
-				fmt.Println("sql error-> %s", err)
-			}
-			for rows.Next() {
-				var id int
-				var name string
-				err = rows.Scan(&id, &name)
-				fmt.Println(id, name)
-			}
-		case "insert":
-			if len(fields) < 4 {
-				fmt.Println("sql error->")
-				fmt.Println("insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');")
-				continue
-			}
-			db, err := sql.Open("sqlite3", dbPath+dbName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer db.Close()
-			_, err = db.Exec(text)
-			if err != nil {
-				fmt.Println("sql error-> %s"+text, err)
-				continue
-			}
-			fmt.Println("sql execute success-> " + text)
-		case "create":
-			if len(fields) < 2 {
-				fmt.Println("sql error->")
-				fmt.Println("create table p2pdb (id integer not null primary key, name text);")
-				continue
-			}
-			name := fields[1]
-			//	v := strings.Join(fields[2:], " ")
-			switch name {
-			// case "database":
-			// 	if len(fields) < 3 {
-			// 		fmt.Println("sql error->")
-			// 		fmt.Println("create database p2pdb;")
-			// 		continue
-			// 	}
-			// 	os.Remove(dbPath + dbName)
-			// 	db, err := sql.Open("sqlite3", dbPath+dbName)
-			// 	if err != nil {
-			// 		log.Fatal(err)
-			// 	}
-			// 	defer db.Close()
-
-			// 	fmt.Printf("databse file is exsit in  %s /n", dbPath+dbName)
-			case "table":
-				if len(fields) < 3 {
-					fmt.Println("sql error->")
-					fmt.Println("create table p2pdb (id integer not null primary key, name text);")
-					fmt.Printf("> ")
-					continue
-				}
-				db, err := sql.Open("sqlite3", dbPath+dbName)
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer db.Close()
-				sqlStmt := text
-				_, err = db.Exec(sqlStmt)
-				if err != nil {
-					log.Println("%q: %s\n", err, sqlStmt)
-					continue
-				}
-				// sqlStmt := text
-				// Exec(sqlStmt)
-				fmt.Println("sql execute success-> %s", text)
-			}
-
-		}
+		execute(fields[0], fields, p2pdbSql, ctx, topic, h)
 
 		fmt.Printf("> ")
 	}
 }
 
-func printErr(err error) {
-	fmt.Println("error:", err)
-	fmt.Println("> ")
+func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Context, topic *pubsub.Topic,
+	h host.Host) {
+
+	switch sqlType {
+	case "exit", "quit":
+		return
+	case "debug":
+		if len(fields) < 2 {
+			fmt.Println("debug <on/off/peers>")
+		}
+		st := fields[1]
+		switch st {
+		case "on":
+			logging.SetLogLevel("globaldb", "debug")
+		case "off":
+			logging.SetLogLevel("globaldb", "error")
+		case "peers": //查看对等节点
+			for _, p := range connectedPeers(h) {
+				addrs, err := peer.AddrInfoToP2pAddrs(p)
+				if err != nil {
+					logger.Warn(err)
+					continue
+				}
+				for _, a := range addrs {
+					fmt.Println(a)
+				}
+			}
+		}
+	case "select":
+		db, err := sql.Open("sqlite3", dbPath+dbName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+		rows, err := db.Query(p2pdbSql)
+		if err != nil {
+			fmt.Println("sql error-> %s", err)
+		}
+		for rows.Next() {
+			var id int
+			var name string
+			err = rows.Scan(&id, &name)
+			fmt.Println(id, name)
+		}
+	case "insert":
+		if len(fields) < 4 {
+			fmt.Println("sql error->")
+			fmt.Println("insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');")
+			return
+		}
+		db, err := sql.Open("sqlite3", dbPath+dbName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+		_, err = db.Exec(p2pdbSql)
+		if err != nil {
+			fmt.Println("sql error-> %s"+p2pdbSql, err)
+			return
+		}
+		publish("insert", p2pdbSql, ctx, topic)
+		fmt.Println("sql execute success-> " + p2pdbSql)
+	case "create":
+		if len(fields) < 2 {
+			fmt.Println("sql error->")
+			fmt.Println("create table p2pdb (id integer not null, name text);")
+			return
+		}
+		name := fields[1]
+		//	v := strings.Join(fields[2:], " ")
+		switch name {
+		// case "database":
+		// 	if len(fields) < 3 {
+		// 		fmt.Println("sql error->")
+		// 		fmt.Println("create database p2pdb;")
+		// 		continue
+		// 	}
+		// 	os.Remove(dbPath + dbName)
+		// 	db, err := sql.Open("sqlite3", dbPath+dbName)
+		// 	if err != nil {
+		// 		log.Fatal(err)
+		// 	}
+		// 	defer db.Close()
+
+		// 	fmt.Printf("databse file is exsit in  %s /n", dbPath+dbName)
+		case "table":
+			if len(fields) < 3 {
+				fmt.Println("sql error->")
+				fmt.Println("create table p2pdb (id integer not null primary key, name text);")
+				fmt.Printf("> ")
+				return
+			}
+			db, err := sql.Open("sqlite3", dbPath+dbName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+			_, err = db.Exec(p2pdbSql)
+			if err != nil {
+				log.Println("%q: %s\n", err, p2pdbSql)
+				return
+			}
+			publish("table", p2pdbSql, ctx, topic)
+			fmt.Println("sql execute success-> %s", p2pdbSql)
+		}
+
+	}
 }
+
+// func openDb(name string) *sql.DB {
+
+// 	db, err := sql.Open("sqlite3", name)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer db.Close()
+// 	return db
+// }
+
+// func Exec(sqlStmt string) {
+// 	_, err := db.Exec(sqlStmt, db)
+// 	if err != nil {
+// 		log.Printf("%q: %s\n", err, sqlStmt)
+// 		return
+// 	}
+// }
+
+// func printErr(err error) {
+// 	fmt.Println("error:", err)
+// 	fmt.Println("> ")
+// }
 
 //对等节点连接，返回对等节点信息
 func connectedPeers(h host.Host) []*peer.AddrInfo {
@@ -413,4 +350,23 @@ func connectedPeers(h host.Host) []*peer.AddrInfo {
 		})
 	}
 	return pinfos
+}
+
+// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
+// This lets us automatically discover peers on the same LAN and connect to them.
+func setupDiscovery(h host.Host) error {
+	// setup mDNS discovery to find local peers
+	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
+	return s.Start()
+}
+
+// HandlePeerFound connects to peers discovered via mDNS. Once they're connected,
+// the PubSub system will automatically start interacting with them if they also
+// support PubSub.
+func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	fmt.Printf("discovered new peer %s\n", pi.ID.Pretty())
+	err := n.h.Connect(context.Background(), pi)
+	if err != nil {
+		fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
+	}
 }

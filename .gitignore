@@ -1,2 +1,3 @@
-conf/app.conf
-p2pdb
+./conf/app.conf
+./p2pdb
+./data/*
