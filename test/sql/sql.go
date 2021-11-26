@@ -83,7 +83,7 @@ func main() {
 	}
 
 	//pub(ps, ctx, topic)
-	sub(ps, ctx, topic)
+	sub(ps, ctx, topic, h)
 	run(h, ctx, topic)
 
 }
@@ -122,7 +122,7 @@ func publish(Type string, Sql string, ctx context.Context, topic *pubsub.Topic) 
 	topic.Publish(ctx, msgBytes)
 }
 
-func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
+func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Host) {
 
 	// and subscribe to it
 	sub, err := topic.Subscribe()
@@ -135,7 +135,6 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
 			msg, err := sub.Next(ctx)
 			if err != nil {
 				panic(err)
-				return
 			}
 			// only forward messages delivered by others
 
@@ -146,6 +145,14 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
 			if err != nil {
 				continue
 			}
+
+			fields := strings.Fields(cm.Sql)
+			if len(fields) == 0 {
+				fmt.Printf("> ")
+				continue
+			}
+
+			execute(cm.Type, fields, cm.Sql, ctx, topic, h)
 			beego.Debug(cm)
 			// send valid messages onto the Messages channel
 			//Messages <- cm
