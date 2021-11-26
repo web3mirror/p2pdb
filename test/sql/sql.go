@@ -39,6 +39,7 @@ var (
 	dbPath    = "./data/"
 	dbName    = "p2pdb.db"
 	db        *sql.DB // 全局变量
+	self      peer.ID
 )
 
 // DiscoveryInterval is how often we re-publish our mDNS records.
@@ -137,7 +138,10 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 				panic(err)
 			}
 			// only forward messages delivered by others
-
+			// only forward messages delivered by others
+			if msg.ReceivedFrom == self {
+				continue
+			}
 			cm := new(P2pdbLog)
 			err = json.Unmarshal(msg.Data, cm)
 			beego.Debug("debug:")
