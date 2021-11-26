@@ -246,12 +246,14 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 	case "select":
 		db, err := sql.Open("sqlite3", dbPath+dbName)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("sql error-> %s", err)
+			return
 		}
 		defer db.Close()
 		rows, err := db.Query(p2pdbSql)
 		if err != nil {
 			fmt.Println("sql error-> %s", err)
+			return
 		}
 		for rows.Next() {
 			var id int
@@ -267,7 +269,8 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 		}
 		db, err := sql.Open("sqlite3", dbPath+dbName)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("sql error-> %s", err)
+			return
 		}
 		defer db.Close()
 		_, err = db.Exec(p2pdbSql)
@@ -303,18 +306,19 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 		case "table":
 			if len(fields) < 3 {
 				fmt.Println("sql error->")
-				fmt.Println("create table p2pdb (id integer not null primary key, name text);")
+				fmt.Println("create table p2pdb (id integer not null, name text);")
 				fmt.Printf("> ")
 				return
 			}
 			db, err := sql.Open("sqlite3", dbPath+dbName)
 			if err != nil {
-				log.Fatal(err)
+				log.Println("sql error->%q: %s\n", err, p2pdbSql)
+				return
 			}
 			defer db.Close()
 			_, err = db.Exec(p2pdbSql)
 			if err != nil {
-				log.Println("%q: %s\n", err, p2pdbSql)
+				log.Println("sql error->%q: %s\n", err, p2pdbSql)
 				return
 			}
 			publish("table", p2pdbSql, ctx, topic)
