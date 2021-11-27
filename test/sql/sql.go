@@ -12,6 +12,7 @@ import (
 	"go-libp2p"
 	"go-libp2p/p2p/discovery/mdns"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
@@ -113,7 +114,7 @@ func pub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
 
 func publish(Type string, Sql string, ctx context.Context, topic *pubsub.Topic) {
 	input := P2pdbLog{
-		Id:   123,
+		Id:   rand.Intn(30),
 		Type: Type,
 		Sql:  Sql,
 	}
@@ -140,6 +141,8 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			}
 			// only forward messages delivered by others
 			// only forward messages delivered by others
+			beego.Debug("ReceivedFrom:" + msg.ReceivedFrom)
+			beego.Debug("selfId:" + selfId)
 			if msg.ReceivedFrom == selfId {
 				continue
 			}
