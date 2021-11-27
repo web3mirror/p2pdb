@@ -160,7 +160,7 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 				continue
 			}
 
-			execute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
+			//xecute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
 			beego.Debug(cm)
 			// send valid messages onto the Messages channel
 			//Messages <- cm
