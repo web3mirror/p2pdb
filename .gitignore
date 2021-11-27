@@ -1,4 +1,5 @@
 ./conf/app.conf
 ./p2pdb
+./log
 ./data/*
 ./database

@@ -97,7 +97,7 @@ func pub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic) {
 		for {
 			time.Sleep(1 * time.Second)
 			input := P2pdbLog{
-				Id:   123,
+				Id:   00000,
 				Type: "insert",
 				Sql:  "insert into p2pdb(id, name) values(1, 'foo'), (2, 'bar'), (3, 'baz');",
 			}
