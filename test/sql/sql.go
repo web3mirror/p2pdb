@@ -139,7 +139,6 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			if err != nil {
 				panic(err)
 			}
-			return
 			// only forward messages delivered by others
 			// only forward messages delivered by others
 			beego.Debug("ReceivedFrom:" + msg.ReceivedFrom)
