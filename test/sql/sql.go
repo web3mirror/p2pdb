@@ -141,8 +141,12 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			}
 			// only forward messages delivered by others
 			// only forward messages delivered by others
-			beego.Debug("ReceivedFrom:" + msg.ReceivedFrom)
-			beego.Debug("selfId:" + selfId)
+			beego.Debug("ReceivedFrom:")
+			beego.Debug(msg.ReceivedFrom)
+
+			beego.Debug("selfId:")
+			beego.Debug(selfId)
+
 			if msg.ReceivedFrom == selfId {
 				continue
 			}
