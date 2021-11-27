@@ -39,7 +39,7 @@ var (
 	dbPath    = "./data/"
 	dbName    = "p2pdb.db"
 	db        *sql.DB // 全局变量
-	self      peer.ID
+	selfId    peer.ID
 )
 
 // DiscoveryInterval is how often we re-publish our mDNS records.
@@ -84,7 +84,8 @@ func main() {
 	}
 
 	//pub(ps, ctx, topic)
-	sub(ps, ctx, topic, h)
+	selfId := h.ID()
+	sub(ps, ctx, topic, h, selfId)
 	run(h, ctx, topic)
 
 }
@@ -123,7 +124,7 @@ func publish(Type string, Sql string, ctx context.Context, topic *pubsub.Topic) 
 	topic.Publish(ctx, msgBytes)
 }
 
-func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Host) {
+func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Host, selfId peer.ID) {
 
 	// and subscribe to it
 	sub, err := topic.Subscribe()
@@ -139,7 +140,7 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			}
 			// only forward messages delivered by others
 			// only forward messages delivered by others
-			if msg.ReceivedFrom == self {
+			if msg.ReceivedFrom == selfId {
 				continue
 			}
 			cm := new(P2pdbLog)
