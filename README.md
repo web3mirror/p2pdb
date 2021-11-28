@@ -96,7 +96,7 @@ Infrastructure	基础设施层
 --------log
 ```
 
-
+<!-- 
 ##安装
 
 这个项目使用 [golang](hhttps://golang.org) 请确保你本地安装了它。
@@ -125,7 +125,7 @@ Commands:
 > get <key>          -> get value for a key
 > put <key> <value>  -> store value on a key
 > exit               -> quit
-```
+``` -->
 
 
 ## 文档
