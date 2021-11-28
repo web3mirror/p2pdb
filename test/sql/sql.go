@@ -339,7 +339,7 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 	}
 
 	if pubMessage == true {
-		publish(sqlType, p2pdbSql, ctx, topic)
+		//	publish(sqlType, p2pdbSql, ctx, topic)
 	}
 }
 
