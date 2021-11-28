@@ -164,7 +164,7 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 				continue
 			}
 
-			//xecute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
+			//execute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
 			beego.Debug(cm)
 			// send valid messages onto the Messages channel
 			//Messages <- cm
@@ -190,7 +190,7 @@ func run(h host.Host, ctx context.Context, topic *pubsub.Topic) {
 	> select               ->  select data
 	> update               ->  update data
 	`,
-		"", listen, topicName, "",
+		h.ID(), listen, topicName, dbPath,
 	)
 
 	if len(os.Args) > 1 && os.Args[1] == "daemon" {
