@@ -164,7 +164,7 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 				continue
 			}
 
-			//execute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
+			execute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
 			beego.Debug(cm)
 			// send valid messages onto the Messages channel
 			//Messages <- cm
@@ -290,7 +290,9 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 			fmt.Println("sql error-> %s"+p2pdbSql, err)
 			return
 		}
-
+		if pubMessage == true {
+			publish(sqlType, p2pdbSql, ctx, topic)
+		}
 		fmt.Println("sql execute success-> " + p2pdbSql)
 	case "create":
 		if len(fields) < 2 {
@@ -333,14 +335,14 @@ func execute(sqlType string, fields []string, p2pdbSql string, ctx context.Conte
 				log.Println("sql error->%q: %s\n", err, p2pdbSql)
 				return
 			}
+			if pubMessage == true {
+				publish(sqlType, p2pdbSql, ctx, topic)
+			}
 			fmt.Println("sql execute success-> %s", p2pdbSql)
 		}
 
 	}
 
-	if pubMessage == true {
-		publish(sqlType, p2pdbSql, ctx, topic)
-	}
 }
 
 // func openDb(name string) *sql.DB {
