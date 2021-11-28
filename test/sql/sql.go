@@ -139,14 +139,13 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			if err != nil {
 				panic(err)
 			}
-			// only forward messages delivered by others
-			// only forward messages delivered by others
-			beego.Debug("ReceivedFrom:")
-			beego.Debug(msg.ReceivedFrom)
+			// beego.Debug("ReceivedFrom:")
+			// beego.Debug(msg.ReceivedFrom)
 
-			beego.Debug("selfId:")
-			beego.Debug(selfId)
+			// beego.Debug("selfId:")
+			// beego.Debug(selfId)
 
+			// only forward messages delivered by others
 			if msg.ReceivedFrom == selfId {
 				continue
 			}
@@ -165,7 +164,7 @@ func sub(ps *pubsub.PubSub, ctx context.Context, topic *pubsub.Topic, h host.Hos
 			}
 
 			execute(cm.Type, fields, cm.Sql, ctx, topic, h, false)
-			beego.Debug(cm)
+			//beego.Debug(cm)
 			// send valid messages onto the Messages channel
 			//Messages <- cm
 		}
