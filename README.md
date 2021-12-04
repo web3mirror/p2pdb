@@ -160,14 +160,14 @@ Commands:
 标准 Readme 遵循 [Contributor Covenant](http://contributor-covenant.org/version/1/3/0/) 行为规范。
 
 ### 贡献者
-
+© Rock Li
 <!-- 感谢以下参与项目的人：
 <a href="graphs/contributors"><img src="https://opencollective.com/standard-readme/contributors.svg?width=890&button=false" /></a> -->
 
 
 ## 使用许可
 
-[Apache License, Version 2.0](LICENSE) © Rock Li
+P2PDB is licensed under the MIT License,See LICENSE for the full license text.
 
 
 
