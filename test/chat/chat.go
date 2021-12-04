@@ -388,7 +388,6 @@ func (ui *ChatUI) handleEvents() {
 	for {
 		select {
 		case input := <-ui.inputCh:
-			input = "test9999"
 			// when the user types in a line, publish it to the chat room and print to the message window
 			err := ui.cr.Publish(input)
 			if err != nil {
