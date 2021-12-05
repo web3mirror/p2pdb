@@ -23,6 +23,10 @@ import (
 	log "berty.tech/go-ipfs-log"
 )
 
+var (
+	dbType = "orbitdb"
+)
+
 func buildHostOverrideExample(ctx context.Context, id peer.ID, ps pstore.Peerstore, options ...libp2p.Option) (host.Host, error) {
 	return ipfs_libp2p.DefaultHostOption(ctx, id, ps, options...)
 }
@@ -97,24 +101,43 @@ func buildNode(ctx context.Context) *ipfs_core.IpfsNode {
 	return nodeA
 }
 
-func buildNode2(ctx context.Context) *ipfs_core.IpfsNode {
-	r, err := newRepo2()
-	if err != nil {
-		panic(err)
-	}
+// func buildNode2(ctx context.Context) *ipfs_core.IpfsNode {
+// 	r, err := newRepo2()
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	cfg := &ipfs_core.BuildCfg{
-		Online: true,
-		Repo:   r,
-		Host:   buildHostOverrideExample,
-	}
+// 	cfg := &ipfs_core.BuildCfg{
+// 		Online: true,
+// 		Repo:   r,
+// 		Host:   buildHostOverrideExample,
+// 	}
 
-	nodeA, err := ipfs_core.NewNode(ctx, cfg)
-	if err != nil {
-		panic(err)
-	}
-	return nodeA
-}
+// 	nodeA, err := ipfs_core.NewNode(ctx, cfg)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return nodeA
+// }
+
+// func buildNode3(ctx context.Context) *ipfs_core.IpfsNode {
+// 	r, err := newRepo2()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	cfg := &ipfs_core.BuildCfg{
+// 		Online: true,
+// 		Repo:   r,
+// 		Host:   buildHostOverrideExample,
+// 	}
+
+// 	nodeA, err := ipfs_core.NewNode(ctx, cfg)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return nodeA
+// }
 
 func main() {
 	fmt.Println("test log merge")
@@ -122,7 +145,8 @@ func main() {
 	ctx := context.Background()
 	// Build Ipfs Node A and Node B
 	nodeA := buildNode(ctx)
-	nodeB := buildNode2(ctx)
+	nodeB := buildNode(ctx)
+	//nodeC := buildNode(ctx)
 	// Fill up datastore with identities
 	ds := dssync.MutexWrap(datastore.NewMapDatastore())
 	ks, err := keystore.NewKeystore(ds)
@@ -132,8 +156,8 @@ func main() {
 	// Create identity A
 	identityA, err := idp.CreateIdentity(&idp.CreateIdentityOptions{
 		Keystore: ks,
-		ID:       "userA",
-		Type:     "orbitdb",
+		ID:       "dbA",
+		Type:     dbType,
 	})
 	if err != nil {
 		panic(fmt.Errorf("coreapi error: %s", err))
@@ -141,21 +165,21 @@ func main() {
 
 	identityB, err := idp.CreateIdentity(&idp.CreateIdentityOptions{
 		Keystore: ks,
-		ID:       "userB",
-		Type:     "orbitdb",
+		ID:       "dbB",
+		Type:     dbType,
 	})
 	if err != nil {
 		panic(fmt.Errorf("coreapi error: %s", err))
 	}
 
-	identityC, err := idp.CreateIdentity(&idp.CreateIdentityOptions{
-		Keystore: ks,
-		ID:       "userB",
-		Type:     "orbitdb",
-	})
-	if err != nil {
-		panic(fmt.Errorf("coreapi error: %s", err))
-	}
+	// identityC, err := idp.CreateIdentity(&idp.CreateIdentityOptions{
+	// 	Keystore: ks,
+	// 	ID:       "dbC",
+	// 	Type:     dbType,
+	// })
+	// if err != nil {
+	// 	panic(fmt.Errorf("coreapi error: %s", err))
+	// }
 
 	serviceA, err := coreapi.NewCoreAPI(nodeA)
 	if err != nil {
@@ -166,6 +190,12 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("coreapi error: %s", err))
 	}
+
+	// serviceC, err := coreapi.NewCoreAPI(nodeC)
+	// if err != nil {
+	// 	panic(fmt.Errorf("coreapi error: %s", err))
+	// }
+
 	// creating log
 	log1, err := log.NewLog(serviceA, identityA, &log.LogOptions{ID: "A"})
 	if err != nil {
@@ -173,48 +203,52 @@ func main() {
 	}
 
 	// creating log
-	log2, err := log.NewLog(serviceA, identityB, &log.LogOptions{ID: "A"})
+	log2, err := log.NewLog(serviceB, identityB, &log.LogOptions{ID: "A"})
 	if err != nil {
 		panic(err)
 	}
 
 	// creating log
-	log3, err := log.NewLog(serviceB, identityC, &log.LogOptions{ID: "A"})
-	if err != nil {
-		panic(err)
-	}
+	// log3, err := log.NewLog(serviceC, identityC, &log.LogOptions{ID: "A"})
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	_, err = log1.Append(ctx, []byte("one"), nil)
+	_, err = log1.Append(ctx, []byte("Aone"), nil)
+	if err != nil {
+		panic(fmt.Errorf("append error: %s", err))
+	}
+	_, err = log2.Append(ctx, []byte("Bone"), nil)
 	if err != nil {
 		panic(fmt.Errorf("append error: %s", err))
 	}
 
-	_, err = log1.Append(ctx, []byte("two"), nil)
+	_, err = log1.Append(ctx, []byte("Atwo"), nil)
+	if err != nil {
+		panic(fmt.Errorf("append error: %s", err))
+	}
+	_, err = log2.Append(ctx, []byte("Btwo"), nil)
 	if err != nil {
 		panic(fmt.Errorf("append error: %s", err))
 	}
 
-	_, err = log2.Append(ctx, []byte("three"), nil)
-	if err != nil {
-		panic(fmt.Errorf("append error: %s", err))
-	}
 	// Join the logs
-	log3.Join(log1, 1)
-	log3.Join(log2, 2)
+	//log3.Join(log1, 1)
+	log1.Join(log2, 2)
 
-	_, err = log3.Append(ctx, []byte("four"), nil)
+	_, err = log1.Append(ctx, []byte("four"), nil)
 	if err != nil {
 		panic(fmt.Errorf("append error: %s", err))
 	}
 
-	fmt.Println(log3.Values())
+	fmt.Println(log1.Values())
 
-	h, err := log3.ToMultihash(ctx)
+	h, err := log1.ToMultihash(ctx)
 	if err != nil {
 		panic(fmt.Errorf("ToMultihash error: %s", err))
 	}
 
-	res, err := log.NewFromMultihash(ctx, serviceA, identityC, h, &log.LogOptions{}, &log.FetchOptions{})
+	res, err := log.NewFromMultihash(ctx, serviceA, identityA, h, &log.LogOptions{}, &log.FetchOptions{})
 	if err != nil {
 		panic(fmt.Errorf("NewFromMultihash error: %s", err))
 	}
