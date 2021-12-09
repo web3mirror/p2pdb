@@ -27,11 +27,13 @@ function compareClock(array $a, array $b){
 //系统时钟一致时,比较事件id
 function compareId(int $aId, int $bId) {
     //b事件在前   b>a
+    $dist=$aId-$bId;
    if(($aId-$bId)>0){
        return $dist;
    }
 
     //a事件在前  a>b
+    $dist=$bId-$aId;
     if(($bId-$aId)>0){
         return $dist;
     }

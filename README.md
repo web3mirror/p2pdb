@@ -167,7 +167,7 @@ Commands:
 
 ## 使用许可
 
-P2PDB is licensed under the MIT License,See LICENSE for the full license text.
+Apache License Version 2.0 see http://www.apache.org/licenses/LICENSE-2.0.html
 
 
 
