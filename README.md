@@ -22,9 +22,9 @@ P2PDB包含以下功能：
 
 4. `sql`   一个基于sqlite,  使用CRDT协议，实现最终一致性（开发中）
 
-5. `log`   基于CRDT协议协议实现的不可篡改日志组件，用于保险、智能汽车、交易凭证等需要保证一旦生成就不可逆的日志场景(开发中）
+5. `pubsub` 基于IPFS Pubsub实现 消息订阅、广播推送  （探索中，未有明确计划）
 
-6. `pubsub` 基于IPFS Pubsub实现 消息订阅、广播推送  （探索中，未有明确计划）
+6. `log`   基于[merker-CRDT](https://research.protocol.ai/blog/2019/a-new-lab-for-resilient-networks-research/PL-TechRep-merkleCRDT-v0.1-Dec30.pdf)协议实现的不可篡改日志组件，用于保险、智能汽车、交易凭证等需要保证一旦生成就不可逆的日志场景(开发中）
 
 ## 内容列表
 
