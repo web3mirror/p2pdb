@@ -57,7 +57,7 @@ type Tx struct {
 
 
 
-//zh-CH :连接数据库,存在直接打开，不存在新建数据库
+//zh-cn :连接数据库,存在直接打开，不存在新建数据库
 //en_US
 func (sqlite *Sqlite) OpenDb(address string) {
 	connect, err := sql.Open("sqlite3", address)
@@ -76,7 +76,7 @@ func (sqlite *Sqlite) Select() {
 
 }
 
-//zh-CH :开启事务
+//zh-cn :开启事务
 //en_US
 func (sqlite *Sqlite) Begin(db *sql.DB) (*sql.Tx, error) {
 	tx, err := sqlite.db.Begin()
@@ -94,7 +94,7 @@ func (sqlite *Sqlite) Execute(args ...interface{}) (sql.Result, error) {
 	return sqlite.stmt.ExecContext(context.Background(), args...)
 }
 
-//zh-CH :提交事务
+//zh-cn :提交事务
 //en_US
 func (sqlite *Sqlite) Commit(tx *sql.Tx) {
 	err := tx.Commit()
@@ -103,7 +103,7 @@ func (sqlite *Sqlite) Commit(tx *sql.Tx) {
 	}
 }
 
-//zh-CH :sql 语句
+//zh-cn :sql 语句
 //en_US:
 // Query executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
