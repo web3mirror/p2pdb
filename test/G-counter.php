@@ -26,18 +26,27 @@ class Counter{
 
 
 $nodeA=new Counter();
-
-
 $nodeB=new Counter();
 
 $nodeA->increment(1);
 $nodeB->increment(3);
 
-
 $count=$nodeA->merge($nodeA->getCountArray(),$nodeB->getCountArray());
 
 var_dump($nodeA->getCountArray());
-
+/*
+array(1) {
+  [0]=>
+  int(1)
+}
+*/
 var_dump($nodeB->getCountArray());
+/*
+array(1) {
+  [0]=>
+  int(3)
+}
+*/
 
 var_dump($count);
+//int(4)

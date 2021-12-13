@@ -136,7 +136,8 @@ Commands:
 ## 文档
 - [文档](https://github.com/kkguan/p2pdb/tree/main/doc)
 
-
+### 说明
+p2pdb 采用了纯golang 语言实现, 如果你的技术栈以Javascript为主,可使用[orbitdb-db](https://github.com/orbitdb/orbit-db) 替代p2pdb
 
 
 想了解我们建议的规范是如何被应用的，请参考 [example-readmes](example-readmes/)。
