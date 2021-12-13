@@ -7,7 +7,9 @@ English | [中文](./README.md)
 decentralized,distributed,peer-to-peer database.
 
 Licensing
-P2PDB is licensed under the MIT License,See LICENSE for the full license text.
+P2PDB is licensed under the  Apache License Version 2.0,See LICENSE for the full license text.
+
+
 
 
 
