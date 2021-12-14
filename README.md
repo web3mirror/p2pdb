@@ -14,18 +14,19 @@ P2PDB（p2p数据库），一个去中心化、分布式、点对点数据库、
 
 P2PDB包含以下功能：
 
-1. `count` 一个分布式计数器，用于验证项目可行性，使用CRDT协议，实现最终一致性（开发中）
+1. `count` 一个分布式计数器，用于验证项目可行性，使用CRDT协议，实现最终一致性（探索中，未有明确计划）
 
-2. `kv`   一个key=>value 的键值数据库，使用CRDT协议，实现最终一致性（已完成）
+2. `kv`   一个key=>value 的键值数据库，使用CRDT协议，实现最终一致性（探索中，未有明确计划）
 
 3. `doc`  一个专为配置文档、注册中心设计的文档数据库，使用CRDT协议，实现最终一致性（探索中，未有明确计划）
 
-4. `sql`   一个基于sqlite,  使用CRDT协议，实现最终一致性（开发中）
+4. `sql`   一个基于sqlite,  使用CRDT协议，实现最终一致性 （探索中，未有明确计划）
 
 5. `pubsub` 基于IPFS Pubsub实现 消息订阅、广播推送  （探索中，未有明确计划）
 
-6. `log`   基于[merker-CRDT](https://research.protocol.ai/blog/2019/a-new-lab-for-resilient-networks-research/PL-TechRep-merkleCRDT-v0.1-Dec30.pdf)协议实现的不可篡改日志组件，用于保险、智能汽车、交易凭证等需要保证一旦生成就不可逆的日志场景(开发中）
+6. `p2pdb-log`   基于[merker-CRDT](https://research.protocol.ai/blog/2019/a-new-lab-for-resilient-networks-research/PL-TechRep-merkleCRDT-v0.1-Dec30.pdf)协议实现的不可篡改日志组件，(开发中）
 
+所有数据库都在p2pdb-log之上实现，p2pdb-log是一种用于分布式系统的不可变的、基于操作的无冲突复制数据结构 (CRDT)与Merkle DAG（有向无环图）实现。如果所有 P2PDB 数据库类型都不符合您的需求和/或您需要特定于案例的功能，您可以轻松使用日志模块实现您想要的数据库。
 ## 内容列表
 
 - [背景](#背景)
