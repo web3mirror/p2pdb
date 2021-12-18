@@ -3,6 +3,14 @@
 # P2PDB
 
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+<p align="center">
+    <a href="https://opensource.org/licenses/Apache-2.0">
+        <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"
+            alt="License"></a>
+    <a href="https://godoc.org/github.com/kkguan/p2pdb">
+        <img src="https://img.shields.io/badge/godoc-reference-blue.svg"
+            alt="GoDoc"></a>
+</p>
 
 中文 | [English](./README-en.md)
 
