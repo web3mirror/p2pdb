@@ -21,12 +21,10 @@
 P2PDB（p2p数据库），一个去中心化、分布式、点对点数据库、P2PDB使用IPFS-libp2p构建分布式网络和IPFS-pubsub与对等节点同步数据。P2PDB期望打造一个去中心化的分布式数据库，使P2PDB 成为线下实体店离线应用程序，去中心化应用程序(dApps)、和边缘计算应用数据存储的绝佳选择, P2PDB基于[白皮书](doc/zh-cn/%E7%99%BD%E7%9A%AE%E4%B9%A6.md)实现
 
 P2PDB包含以下功能：
-- `doc`: 一个专为配置文档、注册中心设计的文档数据库，使用CRDT协议，实现最终一致性（探索中，未有明确计划）
 - `sql`: 一个基于sqlite,  使用CRDT协议，实现最终一致性 （探索中，未有明确计划）
-- `pubsub`: 基于IPFS Pubsub实现 消息订阅、广播推送  （探索中，未有明确计划）
 - `p2pdb-log`: 基于[merker-CRDT](https://research.protocol.ai/blog/2019/a-new-lab-for-resilient-networks-research/PL-TechRep-merkleCRDT-v0.1-Dec30.pdf)协议实现的不可篡改日志组件，(开发中）
 
-所有数据库都在p2pdb-log之上实现，p2pdb-log是一种用于分布式系统的不可变的、基于操作的无冲突复制数据结构 (CRDT)与Merkle DAG（有向无环图）实现。如果所有 P2PDB 数据库类型都不符合您的需求和/或您需要特定于案例的功能，您可以轻松使用日志模块实现您想要的数据库。
+p2pdb基于p2pdb-log之上实现，p2pdb-log是一种只允许追加写入日志，并且不可窜改。基于操作的无冲突复制数据结构 (CRDT)与Merkle DAG（有向无环图）实现。如果所有 P2PDB 数据库类型都不符合您的需求和/或您需要特定于案例的功能，您可以轻松使用日志模块实现您想要的数据库。
 
 
 
